@@ -37,11 +37,16 @@ namespace TTMulti
         /// </summary>
         MirrorGroup,
 
-        /// <summary>
-        /// Mirror all input to one controller
-        /// </summary>
-        MirrorIndividual
-    }
+    /// <summary>
+    /// Mirror all input to one controller
+    /// </summary>
+    MirrorIndividual,
+    
+    /// <summary>
+    /// Focused mode - all input goes to all windows except directional movement keys
+    /// </summary>
+    Focused
+}
 
     class Multicontroller
     {
@@ -131,6 +136,9 @@ namespace TTMulti
                             return new[] { CurrentIndividualController };
                         }
                         break;
+                    case MulticontrollerMode.Focused:
+                        // In focused mode, return all windows (movement filtering happens in ProcessKeyboardInput)
+                        return AllControllersWithWindows;
                 }
 
                 return new ToontownController[] { };
@@ -367,6 +375,13 @@ namespace TTMulti
                 if (_isActive != value)
                 {
                     _isActive = value;
+                    
+                    // If becoming inactive while in Focused mode, reset to MirrorAll
+                    if (!_isActive && CurrentMode == MulticontrollerMode.Focused)
+                    {
+                        _focusedController = null;
+                        _currentMode = MulticontrollerMode.MirrorAll; // Don't use CurrentMode setter to avoid extra events
+                    }
 
                     ActiveChanged?.Invoke(this, EventArgs.Empty);
                 }
@@ -374,6 +389,7 @@ namespace TTMulti
         }
 
         MulticontrollerMode _currentMode = MulticontrollerMode.Group;
+        ToontownController _focusedController = null;
 
         internal MulticontrollerMode CurrentMode
         {
@@ -383,9 +399,36 @@ namespace TTMulti
                 if (_currentMode != value)
                 {
                     _currentMode = value;
+                    
+                    // Clear focused controller when mode is explicitly changed (unless changing TO Focused mode)
+                    if (_focusedController != null && value != MulticontrollerMode.Focused)
+                    {
+                        _focusedController = null;
+                    }
+                    
                     ModeChanged?.Invoke(this, EventArgs.Empty);
                     ActiveControllersChanged?.Invoke(this, EventArgs.Empty);
                 }
+            }
+        }
+        
+        /// <summary>
+        /// Set focus to a specific controller window (single window mode)
+        /// </summary>
+        internal void SetFocusedController(ToontownController controller)
+        {
+            if (_focusedController != controller)
+            {
+                _focusedController = controller;
+                
+                // Activate the multicontroller if not already active
+                if (!IsActive)
+                {
+                    ShouldActivate?.Invoke(this, EventArgs.Empty);
+                }
+                
+                // Set mode to Focused
+                CurrentMode = MulticontrollerMode.Focused;
             }
         }
 
@@ -549,6 +592,14 @@ namespace TTMulti
                 {
                     if (IsActive)
                     {
+                        // If in focused mode, exit it and return to Mirror mode
+                        if (CurrentMode == MulticontrollerMode.Focused)
+                        {
+                            _focusedController = null;
+                            CurrentMode = MulticontrollerMode.MirrorAll;
+                            return true;
+                        }
+                        
                         List<MulticontrollerMode> availableModesToCycle = new List<MulticontrollerMode>();
 
                         if (Properties.Settings.Default.groupModeCycleWithModeHotkey)
@@ -752,10 +803,18 @@ namespace TTMulti
                 && Properties.Settings.Default.zeroPowerThrowKeyCode != 0)
             {
                 // Handle Zero Power Throw Hotkey
-                if ((msg == Win32.WM.KEYDOWN || msg == Win32.WM.HOTKEY) && IsActive && !zeroPowerThrowKeyPressed)
+                if (msg == Win32.WM.KEYDOWN || msg == Win32.WM.HOTKEY)
                 {
-                    // Mark key as pressed to prevent repeats
-                    zeroPowerThrowKeyPressed = true;
+                    // For HOTKEY messages, we can't rely on KEYUP, so just execute without repeat prevention
+                    // For KEYDOWN messages (when multicontroller is active), use repeat prevention
+                    if (msg == Win32.WM.KEYDOWN)
+                    {
+                        if (zeroPowerThrowKeyPressed)
+                        {
+                            return true; // Ignore repeated KEYDOWN
+                        }
+                        zeroPowerThrowKeyPressed = true;
+                    }
                     
                     // Find the Throw key from bindings
                     var keyBindings = Properties.SerializedSettings.Default.Bindings;
@@ -763,34 +822,74 @@ namespace TTMulti
                     
                     if (throwBinding != null)
                     {
-                        IEnumerable<ToontownController> affectedControllers = ActiveControllers;
-                        
-                        // Send instant tap of the throw key to all active controllers
-                        affectedControllers.ToList().ForEach(c => {
-                            Keys throwKey = Keys.None;
+                        if (IsActive)
+                        {
+                            // Multicontroller is active: Send to all active controllers
+                            IEnumerable<ToontownController> affectedControllers = ActiveControllers;
                             
-                            // Determine which throw key to use based on controller type
-                            if (c.Type == ControllerType.Left && throwBinding.LeftToonKey != Keys.None)
-                            {
-                                throwKey = throwBinding.LeftToonKey;
-                            }
-                            else if (c.Type == ControllerType.Right && throwBinding.RightToonKey != Keys.None)
-                            {
-                                throwKey = throwBinding.RightToonKey;
-                            }
+                            // Send instant tap of the throw key to all active controllers
+                            affectedControllers.ToList().ForEach(c => {
+                                Keys throwKey = Keys.None;
+                                
+                                // Determine which throw key to use based on controller type
+                                if (c.Type == ControllerType.Left && throwBinding.LeftToonKey != Keys.None)
+                                {
+                                    throwKey = throwBinding.LeftToonKey;
+                                }
+                                else if (c.Type == ControllerType.Right && throwBinding.RightToonKey != Keys.None)
+                                {
+                                    throwKey = throwBinding.RightToonKey;
+                                }
+                                
+                                if (throwKey != Keys.None)
+                                {
+                                    // Send both KEYDOWN and KEYUP immediately without delay for 0% power
+                                    c.PostMessage(Win32.WM.KEYDOWN, (IntPtr)throwKey, IntPtr.Zero);
+                                    c.PostMessage(Win32.WM.KEYUP, (IntPtr)throwKey, IntPtr.Zero);
+                                }
+                            });
+                        }
+                        else
+                        {
+                            // Multicontroller is NOT active: Focus the foreground window and activate multicontroller
+                            IntPtr foregroundWindow = Win32.GetForegroundWindow();
+                            var foregroundController = AllControllersWithWindows.FirstOrDefault(c => c.WindowHandle == foregroundWindow);
                             
-                            if (throwKey != Keys.None)
+                            if (foregroundController != null)
                             {
-                                // Send both KEYDOWN and KEYUP immediately without delay for 0% power
-                                c.PostMessage(Win32.WM.KEYDOWN, (IntPtr)throwKey, IntPtr.Zero);
-                                c.PostMessage(Win32.WM.KEYUP, (IntPtr)throwKey, IntPtr.Zero);
+                                // Set this window as focused - this will activate the multicontroller in focused mode
+                                // In this mode: all inputs go to all windows EXCEPT movement keys which only go to focused window
+                                SetFocusedController(foregroundController);
+                                
+                                // Now send the throw to ALL windows
+                                foreach (var controller in AllControllersWithWindows)
+                                {
+                                    Keys throwKey = Keys.None;
+                                    
+                                    // Determine which throw key to use based on controller type
+                                    if (controller.Type == ControllerType.Left && throwBinding.LeftToonKey != Keys.None)
+                                    {
+                                        throwKey = throwBinding.LeftToonKey;
+                                    }
+                                    else if (controller.Type == ControllerType.Right && throwBinding.RightToonKey != Keys.None)
+                                    {
+                                        throwKey = throwBinding.RightToonKey;
+                                    }
+                                    
+                                    if (throwKey != Keys.None)
+                                    {
+                                        // Send both KEYDOWN and KEYUP immediately without delay for 0% power
+                                        controller.PostMessage(Win32.WM.KEYDOWN, (IntPtr)throwKey, IntPtr.Zero);
+                                        controller.PostMessage(Win32.WM.KEYUP, (IntPtr)throwKey, IntPtr.Zero);
+                                    }
+                                }
                             }
-                        });
+                        }
                     }
                 }
                 else if (msg == Win32.WM.KEYUP)
                 {
-                    // Reset flag when key is released
+                    // Reset flag when key is released (only applies when multicontroller is active)
                     zeroPowerThrowKeyPressed = false;
                 }
             }
@@ -824,6 +923,28 @@ namespace TTMulti
 
                 IEnumerable<ToontownController> affectedControllers = ActiveControllers;
                 List<Keys> keysToPress = new List<Keys>();
+                
+                // In Focused mode, check if this is a directional movement key
+                if (CurrentMode == MulticontrollerMode.Focused && _focusedController != null)
+                {
+                    // Define ONLY directional movement key titles (NOT Jump)
+                    var directionalMovementTitles = new[] { "Forward", "Backward", "Left", "Right" };
+                    var movementBindings = Properties.SerializedSettings.Default.Bindings
+                        .Where(b => directionalMovementTitles.Contains(b.Title));
+                    
+                    foreach (var binding in movementBindings)
+                    {
+                        if (keysPressed == binding.Key)
+                        {
+                            // In Focused mode, send the Toontown Key directly (not the mapped left/right keys)
+                            _focusedController.PostMessage(msg, wParam, lParam);
+                            return true;
+                        }
+                    }
+                    
+                    // If not a directional movement key (including Jump and all other keys), send to ALL windows
+                    affectedControllers = AllControllersWithWindows;
+                }
 
                 if (CurrentMode == MulticontrollerMode.Group 
                     || CurrentMode == MulticontrollerMode.AllGroup 
@@ -850,7 +971,8 @@ namespace TTMulti
                 
                 if (CurrentMode == MulticontrollerMode.MirrorAll
                     || CurrentMode == MulticontrollerMode.MirrorGroup
-                    || CurrentMode == MulticontrollerMode.MirrorIndividual)
+                    || CurrentMode == MulticontrollerMode.MirrorIndividual
+                    || CurrentMode == MulticontrollerMode.Focused)  // Focused mode acts like mirror for non-directional keys
                 {
                     affectedControllers.ToList().ForEach(c => c.PostMessage(msg, wParam, lParam));
                 }

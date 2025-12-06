@@ -10,5 +10,6 @@ namespace TTMulti
         public static readonly Color Individual = Color.Lime;
         public static readonly Color Multiclick = Color.IndianRed;
         public static readonly Color ChromaKey = Color.Fuchsia;
+        public static readonly Color Focused = Color.DarkBlue;
     }
 }

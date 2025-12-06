@@ -340,6 +340,9 @@ namespace TTMulti
                         case MulticontrollerMode.MirrorIndividual:
                             _borderWnd.BorderColor = Colors.Individual;
                             break;
+                        case MulticontrollerMode.Focused:
+                            _borderWnd.BorderColor = Colors.Focused;
+                            break;
                     }
                 }
 
