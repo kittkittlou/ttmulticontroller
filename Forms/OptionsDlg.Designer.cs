@@ -66,8 +66,10 @@ namespace TTMulti.Forms
             this.tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.multiclickGroupBox = new System.Windows.Forms.GroupBox();
+            this.zeroPowerThrowGroupBox = new System.Windows.Forms.GroupBox();
             this.label4 = new System.Windows.Forms.Label();
             this.multiclickLabel = new System.Windows.Forms.Label();
+            this.zeroPowerThrowLabel = new System.Windows.Forms.Label();
             this.tabPage5 = new System.Windows.Forms.TabPage();
             this.label2 = new System.Windows.Forms.Label();
             this.tabPage2 = new System.Windows.Forms.TabPage();
@@ -91,6 +93,7 @@ namespace TTMulti.Forms
             this.groupModeHotkeyPicker = new TTMulti.Controls.KeyPicker();
             this.keyPicker1 = new TTMulti.Controls.KeyPicker();
             this.multiclickKeyPicker = new TTMulti.Controls.KeyPicker();
+            this.zeroPowerThrowKeyPicker = new TTMulti.Controls.KeyPicker();
             this.keyPicker2 = new TTMulti.Controls.KeyPicker();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.checkBox1 = new System.Windows.Forms.CheckBox();
@@ -109,6 +112,7 @@ namespace TTMulti.Forms
             this.tableLayoutPanel2.SuspendLayout();
             this.groupBox1.SuspendLayout();
             this.multiclickGroupBox.SuspendLayout();
+            this.zeroPowerThrowGroupBox.SuspendLayout();
             this.tabPage5.SuspendLayout();
             this.tabPage2.SuspendLayout();
             this.groupBox6.SuspendLayout();
@@ -492,10 +496,12 @@ namespace TTMulti.Forms
             this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel2.Controls.Add(this.groupBox1, 0, 0);
             this.tableLayoutPanel2.Controls.Add(this.multiclickGroupBox, 0, 1);
+            this.tableLayoutPanel2.Controls.Add(this.zeroPowerThrowGroupBox, 0, 2);
             this.tableLayoutPanel2.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tableLayoutPanel2.Location = new System.Drawing.Point(4, 4);
             this.tableLayoutPanel2.Name = "tableLayoutPanel2";
-            this.tableLayoutPanel2.RowCount = 3;
+            this.tableLayoutPanel2.RowCount = 4;
+            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
@@ -553,6 +559,32 @@ namespace TTMulti.Forms
             this.multiclickGroupBox.TabIndex = 14;
             this.multiclickGroupBox.TabStop = false;
             this.multiclickGroupBox.Text = "Multiclick Hotkey:";
+            // 
+            // zeroPowerThrowLabel
+            // 
+            this.zeroPowerThrowLabel.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+                                                                       | System.Windows.Forms.AnchorStyles.Right)));
+            this.zeroPowerThrowLabel.Location = new System.Drawing.Point(8, 20);
+            this.zeroPowerThrowLabel.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.zeroPowerThrowLabel.Name = "zeroPowerThrowLabel";
+            this.zeroPowerThrowLabel.Size = new System.Drawing.Size(712, 35);
+            this.zeroPowerThrowLabel.TabIndex = 13;
+            this.zeroPowerThrowLabel.Text = "This key sends an instant tap (0% power) of the Throw key to all active windows. " +
+                                        "Works in all modes (Multi-Mode and Mirror Mode).";
+            // 
+            // zeroPowerThrowGroupBox
+            // 
+            this.zeroPowerThrowGroupBox.Controls.Add(this.zeroPowerThrowLabel);
+            this.zeroPowerThrowGroupBox.Controls.Add(this.zeroPowerThrowKeyPicker);
+            this.zeroPowerThrowGroupBox.Dock = System.Windows.Forms.DockStyle.Top;
+            this.zeroPowerThrowGroupBox.Location = new System.Drawing.Point(4, 4);
+            this.zeroPowerThrowGroupBox.Margin = new System.Windows.Forms.Padding(4);
+            this.zeroPowerThrowGroupBox.Name = "zeroPowerThrowGroupBox";
+            this.zeroPowerThrowGroupBox.Padding = new System.Windows.Forms.Padding(4);
+            this.zeroPowerThrowGroupBox.Size = new System.Drawing.Size(726, 100);
+            this.zeroPowerThrowGroupBox.TabIndex = 14;
+            this.zeroPowerThrowGroupBox.TabStop = false;
+            this.zeroPowerThrowGroupBox.Text = "Zero Power Throw Hotkey:";
             // 
             // tabPage5
             // 
@@ -836,6 +868,20 @@ namespace TTMulti.Forms
             this.multiclickKeyPicker.TabIndex = 12;
             this.multiclickKeyPicker.TabStop = false;
             // 
+            // zeroPowerThrowKeyPicker
+            // 
+            this.zeroPowerThrowKeyPicker.ChosenKey = System.Windows.Forms.Keys.None;
+            this.zeroPowerThrowKeyPicker.ChosenKeyCode = global::TTMulti.Properties.Settings.Default.zeroPowerThrowKeyCode;
+            this.zeroPowerThrowKeyPicker.DataBindings.Add(new System.Windows.Forms.Binding("ChosenKeyCode", global::TTMulti.Properties.Settings.Default, "zeroPowerThrowKeyCode", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.zeroPowerThrowKeyPicker.Location = new System.Drawing.Point(9, 60);
+            this.zeroPowerThrowKeyPicker.Margin = new System.Windows.Forms.Padding(5);
+            this.zeroPowerThrowKeyPicker.MinimumSize = new System.Drawing.Size(50, 25);
+            this.zeroPowerThrowKeyPicker.Name = "zeroPowerThrowKeyPicker";
+            this.zeroPowerThrowKeyPicker.Size = new System.Drawing.Size(188, 25);
+            this.zeroPowerThrowKeyPicker.TabIndex = 12;
+            this.zeroPowerThrowKeyPicker.TabStop = false;
+            this.toolTip1.SetToolTip(this.zeroPowerThrowKeyPicker, "This hotkey will send an instant tap of your Throw key (0% power throw).");
+            // 
             // keyPicker2
             // 
             this.keyPicker2.ChosenKey = System.Windows.Forms.Keys.Home;
@@ -921,6 +967,7 @@ namespace TTMulti.Forms
             this.tableLayoutPanel2.ResumeLayout(false);
             this.groupBox1.ResumeLayout(false);
             this.multiclickGroupBox.ResumeLayout(false);
+            this.zeroPowerThrowGroupBox.ResumeLayout(false);
             this.tabPage5.ResumeLayout(false);
             this.tabPage5.PerformLayout();
             this.tabPage2.ResumeLayout(false);
@@ -960,8 +1007,11 @@ namespace TTMulti.Forms
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.GroupBox multiclickGroupBox;
+        private System.Windows.Forms.GroupBox zeroPowerThrowGroupBox;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Label multiclickLabel;
+        private System.Windows.Forms.Label zeroPowerThrowLabel;
+        private TTMulti.Controls.KeyPicker zeroPowerThrowKeyPicker;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel2;
         private System.Windows.Forms.Label label7;
         private System.Windows.Forms.GroupBox groupBox5;

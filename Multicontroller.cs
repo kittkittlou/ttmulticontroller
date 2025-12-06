@@ -391,6 +391,8 @@ namespace TTMulti
 
         Dictionary<Keys, List<Keys>> leftKeys = new Dictionary<Keys, List<Keys>>(),
             rightKeys = new Dictionary<Keys, List<Keys>>();
+        
+        bool zeroPowerThrowKeyPressed = false;
 
         int lastMoveX, lastMoveY;
 
@@ -685,6 +687,52 @@ namespace TTMulti
                 if (ControllerGroups.Count > index)
                 {
                     CurrentGroupIndex = index;
+                }
+            }
+            else if (keysPressed == (Keys)Properties.Settings.Default.zeroPowerThrowKeyCode 
+                && Properties.Settings.Default.zeroPowerThrowKeyCode != 0)
+            {
+                // Handle Zero Power Throw Hotkey
+                if (msg == Win32.WM.KEYDOWN && IsActive && !zeroPowerThrowKeyPressed)
+                {
+                    // Mark key as pressed to prevent repeats
+                    zeroPowerThrowKeyPressed = true;
+                    
+                    // Find the Throw key from bindings
+                    var keyBindings = Properties.SerializedSettings.Default.Bindings;
+                    var throwBinding = keyBindings.FirstOrDefault(b => b.Title == "Throw");
+                    
+                    if (throwBinding != null)
+                    {
+                        IEnumerable<ToontownController> affectedControllers = ActiveControllers;
+                        
+                        // Send instant tap of the throw key to all active controllers
+                        affectedControllers.ToList().ForEach(c => {
+                            Keys throwKey = Keys.None;
+                            
+                            // Determine which throw key to use based on controller type
+                            if (c.Type == ControllerType.Left && throwBinding.LeftToonKey != Keys.None)
+                            {
+                                throwKey = throwBinding.LeftToonKey;
+                            }
+                            else if (c.Type == ControllerType.Right && throwBinding.RightToonKey != Keys.None)
+                            {
+                                throwKey = throwBinding.RightToonKey;
+                            }
+                            
+                            if (throwKey != Keys.None)
+                            {
+                                // Send both KEYDOWN and KEYUP immediately without delay for 0% power
+                                c.PostMessage(Win32.WM.KEYDOWN, (IntPtr)throwKey, IntPtr.Zero);
+                                c.PostMessage(Win32.WM.KEYUP, (IntPtr)throwKey, IntPtr.Zero);
+                            }
+                        });
+                    }
+                }
+                else if (msg == Win32.WM.KEYUP)
+                {
+                    // Reset flag when key is released
+                    zeroPowerThrowKeyPressed = false;
                 }
             }
             else

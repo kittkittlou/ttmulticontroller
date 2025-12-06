@@ -133,6 +133,18 @@ namespace TTMulti.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("46")]
+        public int leftThrowTapKeyCode {
+            get {
+                return ((int)(this["leftThrowTapKeyCode"]));
+            }
+            set {
+                this["leftThrowTapKeyCode"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("27")]
         public int leftEscapeKeyCode {
             get {
@@ -212,6 +224,18 @@ namespace TTMulti.Properties {
             }
             set {
                 this["rightThrowKeyCode"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("46")]
+        public int rightThrowTapKeyCode {
+            get {
+                return ((int)(this["rightThrowTapKeyCode"]));
+            }
+            set {
+                this["rightThrowTapKeyCode"] = value;
             }
         }
         
@@ -521,6 +545,18 @@ namespace TTMulti.Properties {
             }
             set {
                 this["enableClickToChangeControllers"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int zeroPowerThrowKeyCode {
+            get {
+                return ((int)(this["zeroPowerThrowKeyCode"]));
+            }
+            set {
+                this["zeroPowerThrowKeyCode"] = value;
             }
         }
     }
