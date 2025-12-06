@@ -559,5 +559,293 @@ namespace TTMulti.Properties {
                 this["zeroPowerThrowKeyCode"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool layoutPreset1Enabled {
+            get {
+                return ((bool)(this["layoutPreset1Enabled"]));
+            }
+            set {
+                this["layoutPreset1Enabled"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("4")]
+        public int layoutPreset1Columns {
+            get {
+                return ((int)(this["layoutPreset1Columns"]));
+            }
+            set {
+                this["layoutPreset1Columns"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("2")]
+        public int layoutPreset1Rows {
+            get {
+                return ((int)(this["layoutPreset1Rows"]));
+            }
+            set {
+                this["layoutPreset1Rows"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0,0,1920,1080")]
+        public string layoutPreset1Regions {
+            get {
+                return ((string)(this["layoutPreset1Regions"]));
+            }
+            set {
+                this["layoutPreset1Regions"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int layoutPreset1HotkeyCode {
+            get {
+                return ((int)(this["layoutPreset1HotkeyCode"]));
+            }
+            set {
+                this["layoutPreset1HotkeyCode"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int layoutPreset1HotkeyModifiers {
+            get {
+                return ((int)(this["layoutPreset1HotkeyModifiers"]));
+            }
+            set {
+                this["layoutPreset1HotkeyModifiers"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool layoutPreset2Enabled {
+            get {
+                return ((bool)(this["layoutPreset2Enabled"]));
+            }
+            set {
+                this["layoutPreset2Enabled"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("4")]
+        public int layoutPreset2Columns {
+            get {
+                return ((int)(this["layoutPreset2Columns"]));
+            }
+            set {
+                this["layoutPreset2Columns"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("2")]
+        public int layoutPreset2Rows {
+            get {
+                return ((int)(this["layoutPreset2Rows"]));
+            }
+            set {
+                this["layoutPreset2Rows"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0,0,1920,1080")]
+        public string layoutPreset2Regions {
+            get {
+                return ((string)(this["layoutPreset2Regions"]));
+            }
+            set {
+                this["layoutPreset2Regions"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int layoutPreset2HotkeyCode {
+            get {
+                return ((int)(this["layoutPreset2HotkeyCode"]));
+            }
+            set {
+                this["layoutPreset2HotkeyCode"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int layoutPreset2HotkeyModifiers {
+            get {
+                return ((int)(this["layoutPreset2HotkeyModifiers"]));
+            }
+            set {
+                this["layoutPreset2HotkeyModifiers"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool layoutPreset3Enabled {
+            get {
+                return ((bool)(this["layoutPreset3Enabled"]));
+            }
+            set {
+                this["layoutPreset3Enabled"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("4")]
+        public int layoutPreset3Columns {
+            get {
+                return ((int)(this["layoutPreset3Columns"]));
+            }
+            set {
+                this["layoutPreset3Columns"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("2")]
+        public int layoutPreset3Rows {
+            get {
+                return ((int)(this["layoutPreset3Rows"]));
+            }
+            set {
+                this["layoutPreset3Rows"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0,0,1920,1080")]
+        public string layoutPreset3Regions {
+            get {
+                return ((string)(this["layoutPreset3Regions"]));
+            }
+            set {
+                this["layoutPreset3Regions"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int layoutPreset3HotkeyCode {
+            get {
+                return ((int)(this["layoutPreset3HotkeyCode"]));
+            }
+            set {
+                this["layoutPreset3HotkeyCode"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int layoutPreset3HotkeyModifiers {
+            get {
+                return ((int)(this["layoutPreset3HotkeyModifiers"]));
+            }
+            set {
+                this["layoutPreset3HotkeyModifiers"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool layoutPreset4Enabled {
+            get {
+                return ((bool)(this["layoutPreset4Enabled"]));
+            }
+            set {
+                this["layoutPreset4Enabled"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("4")]
+        public int layoutPreset4Columns {
+            get {
+                return ((int)(this["layoutPreset4Columns"]));
+            }
+            set {
+                this["layoutPreset4Columns"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("2")]
+        public int layoutPreset4Rows {
+            get {
+                return ((int)(this["layoutPreset4Rows"]));
+            }
+            set {
+                this["layoutPreset4Rows"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0,0,1920,1080")]
+        public string layoutPreset4Regions {
+            get {
+                return ((string)(this["layoutPreset4Regions"]));
+            }
+            set {
+                this["layoutPreset4Regions"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int layoutPreset4HotkeyCode {
+            get {
+                return ((int)(this["layoutPreset4HotkeyCode"]));
+            }
+            set {
+                this["layoutPreset4HotkeyCode"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int layoutPreset4HotkeyModifiers {
+            get {
+                return ((int)(this["layoutPreset4HotkeyModifiers"]));
+            }
+            set {
+                this["layoutPreset4HotkeyModifiers"] = value;
+            }
+        }
     }
 }

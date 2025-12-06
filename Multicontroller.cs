@@ -1008,6 +1008,43 @@ namespace TTMulti
                 AllWindowsInactive?.Invoke(this, EventArgs.Empty);
             }
         }
+
+        /// <summary>
+        /// Apply a layout preset to all windows with handles
+        /// </summary>
+        public void ApplyLayoutPreset(LayoutPreset preset)
+        {
+            if (preset == null || !preset.Enabled)
+                return;
+
+            var controllersWithWindows = AllControllersWithWindows.ToList();
+            if (controllersWithWindows.Count == 0)
+                return;
+
+            // Calculate grid layout (window size and positions)
+            var (windowSize, positions) = preset.CalculateGridLayout(controllersWithWindows.Count);
+
+            if (windowSize.IsEmpty || positions.Length == 0)
+                return;
+
+            // Apply layout to all windows
+            for (int i = 0; i < controllersWithWindows.Count && i < positions.Length; i++)
+            {
+                var controller = controllersWithWindows[i];
+                Point position = positions[i];
+
+                // Use SetWindowPos to move and resize the window
+                Win32.SetWindowPos(
+                    controller.WindowHandle,
+                    IntPtr.Zero,
+                    position.X,
+                    position.Y,
+                    windowSize.Width,
+                    windowSize.Height,
+                    Win32.SetWindowPosFlags.ShowWindow | Win32.SetWindowPosFlags.DoNotActivate
+                );
+            }
+        }
     }
 
     

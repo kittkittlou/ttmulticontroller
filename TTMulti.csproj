@@ -103,6 +103,7 @@
     <Compile Include="Colors.cs" />
     <Compile Include="ControllerGroup.cs" />
     <Compile Include="ControllerPair.cs" />
+    <Compile Include="LayoutPreset.cs" />
     <Compile Include="Events\WindowClientAreaLocationChangedEventArgs.cs" />
     <Compile Include="Events\WindowClientAreaSizeChangedEventArgs.cs" />
     <Compile Include="Events\WindowClosedEventArgs.cs" />

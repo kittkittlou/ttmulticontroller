@@ -171,8 +171,21 @@ namespace TTMulti.Forms
                 case Win32.WM.SYSKEYDOWN:
                 case Win32.WM.SYSKEYUP:
                 case Win32.WM.SYSCOMMAND:
-                case Win32.WM.HOTKEY:
                     ret = controller.ProcessInput(m.Msg, m.WParam, m.LParam);
+                    break;
+                case Win32.WM.HOTKEY:
+                    // Check if this is a layout preset hotkey (IDs 3-6)
+                    int hotkeyId = m.WParam.ToInt32();
+                    if (hotkeyId >= 3 && hotkeyId <= 6)
+                    {
+                        // Let layout hotkeys pass through to WndProc
+                        ret = false;
+                    }
+                    else
+                    {
+                        // Process other hotkeys normally
+                        ret = controller.ProcessInput(m.Msg, m.WParam, m.LParam);
+                    }
                     break;
             }
             
@@ -185,7 +198,20 @@ namespace TTMulti.Forms
         {
             if (m.Msg == (int)Win32.WM.HOTKEY)
             {
-                controller.ProcessInput(m.Msg, m.WParam, m.LParam);
+                int hotkeyId = m.WParam.ToInt32();
+                
+                // Check if this is a layout preset hotkey (IDs 3-6)
+                if (hotkeyId >= 3 && hotkeyId <= 6)
+                {
+                    int presetNumber = hotkeyId - 2; // 3->1, 4->2, 5->3, 6->4
+                    var preset = LayoutPreset.LoadFromSettings(presetNumber);
+                    controller.ApplyLayoutPreset(preset);
+                }
+                else
+                {
+                    controller.ProcessInput(m.Msg, m.WParam, m.LParam);
+                }
+                
                 CheckControllerErrors();
             }
 
@@ -229,7 +255,20 @@ namespace TTMulti.Forms
             this.TopMost = Properties.Settings.Default.onTopWhenInactive;
             panel1.Visible = !Properties.Settings.Default.compactUI;
             controller.UpdateOptions();
+            
+            // Unregister all hotkeys
             UnregisterHotkey();
+            UnregisterLayoutHotkeys();
+            
+            // Re-register hotkeys if multicontroller is active or windows are active
+            if (controller.IsActive || controller.AllControllersWithWindows.Any(c => c.IsWindowActive))
+            {
+                if (controller.AllControllersWithWindows.Any(c => c.IsWindowActive))
+                {
+                    RegisterHotkey();
+                }
+                RegisterLayoutHotkeys();
+            }
         }
 
         private bool RegisterHotkey()
@@ -249,6 +288,8 @@ namespace TTMulti.Forms
                 {
                     Win32.RegisterHotKey(this.Handle, 2, Win32.KeyModifiers.None, (Keys)Properties.Settings.Default.zeroPowerThrowKeyCode);
                 }
+
+                // Note: Layout hotkeys (IDs 3-6) are registered separately via RegisterLayoutHotkeys()
             }
 
             return hotkeyRegistered;
@@ -256,11 +297,34 @@ namespace TTMulti.Forms
 
         private void UnregisterHotkey()
         {
+            // Unregister mode switching hotkeys (IDs 0-2)
             Win32.UnregisterHotKey(this.Handle, 0);
             Win32.UnregisterHotKey(this.Handle, 1);
             Win32.UnregisterHotKey(this.Handle, 2);
 
             hotkeyRegistered = false;
+        }
+
+        private void RegisterLayoutHotkeys()
+        {
+            // Register layout preset hotkeys (IDs 3-6)
+            for (int i = 1; i <= 4; i++)
+            {
+                var preset = LayoutPreset.LoadFromSettings(i);
+                if (preset.Enabled && preset.HotkeyCode != 0)
+                {
+                    Win32.RegisterHotKey(this.Handle, 2 + i, preset.HotkeyModifiers, (Keys)preset.HotkeyCode);
+                }
+            }
+        }
+
+        private void UnregisterLayoutHotkeys()
+        {
+            // Unregister layout hotkeys (IDs 3-6)
+            Win32.UnregisterHotKey(this.Handle, 3);
+            Win32.UnregisterHotKey(this.Handle, 4);
+            Win32.UnregisterHotKey(this.Handle, 5);
+            Win32.UnregisterHotKey(this.Handle, 6);
         }
 
         private void MulticontrollerWnd_Load(object sender, EventArgs e)
@@ -324,11 +388,15 @@ namespace TTMulti.Forms
         private void Controller_AllWindowsInactive(object sender, EventArgs e)
         {
             UnregisterHotkey();
+            // Unregister layout hotkeys when all windows are inactive
+            UnregisterLayoutHotkeys();
         }
 
         private void Controller_WindowActivated(object sender, EventArgs e)
         {
             RegisterHotkey();
+            // Also register layout hotkeys when a Toontown window is active
+            RegisterLayoutHotkeys();
         }
 
         private void MainWnd_FormClosing(object sender, FormClosingEventArgs e)
@@ -426,11 +494,15 @@ namespace TTMulti.Forms
         private void MulticontrollerWnd_Activated(object sender, EventArgs e)
         {
             controller.IsActive = true;
+            // Register layout hotkeys when multicontroller window is active
+            RegisterLayoutHotkeys();
         }
 
         private void MulticontrollerWnd_Deactivate(object sender, EventArgs e)
         {
             controller.IsActive = false;
+            // Unregister layout hotkeys when multicontroller window is inactive
+            UnregisterLayoutHotkeys();
         }
     }
 }
