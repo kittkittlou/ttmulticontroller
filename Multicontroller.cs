@@ -393,6 +393,7 @@ namespace TTMulti
             rightKeys = new Dictionary<Keys, List<Keys>>();
         
         bool zeroPowerThrowKeyPressed = false;
+        bool multiClickKeyPressed = false;
 
         int lastMoveX, lastMoveY;
 
@@ -619,29 +620,87 @@ namespace TTMulti
                     }
                 }
             }
-            else if (keysPressed == (Keys)Properties.Settings.Default.replicateMouseKeyCode)
+            else if (keysPressed == (Keys)Properties.Settings.Default.replicateMouseKeyCode
+                && Properties.Settings.Default.replicateMouseKeyCode != 0)
             {
-                // If we are pressing the key down to activate multiclick and the multiclick setting is off, turn it on.
-                if (msg == Win32.WM.KEYDOWN && !Properties.Settings.Default.replicateMouse)
+                // Instant Multi-Click: Send a click to all windows at current cursor position
+                if (msg == Win32.WM.KEYDOWN || msg == Win32.WM.HOTKEY)
                 {
-                    Properties.Settings.Default.replicateMouse = true;
-                    Properties.Settings.Default.Save();
-                    SettingChanged?.Invoke(this, EventArgs.Empty);
-                    
-                    // Update fake cursor positions to make them render immediately.
-                    foreach (var controller in AllControllers)
+                    // Prevent key repeat - only trigger on initial press
+                    if (multiClickKeyPressed)
                     {
-                        controller.FakeCursorPosition = new Point(lastMoveX, lastMoveY);
-                        controller.ShowFakeCursor = true;
+                        return true;
+                    }
+                    multiClickKeyPressed = true;
+                    
+                    // Get the current global cursor position FIRST
+                    Point cursorPos = System.Windows.Forms.Control.MousePosition;
+                    
+                    // Find which window the cursor is over to get relative coordinates
+                    int relativeX = 0;
+                    int relativeY = 0;
+                    bool foundCursorWindow = false;
+                    
+                    foreach (ToontownController controller in AllControllersWithWindows)
+                    {
+                        // Get client area location (screen coordinates of the game area, excluding title bar/borders)
+                        Point clientAreaLocation = Win32.GetWindowClientAreaLocation(controller.WindowHandle);
+                        Size clientAreaSize = controller.WindowSize;
+                        
+                        // Check if cursor is within this window's client area bounds
+                        if (cursorPos.X >= clientAreaLocation.X && cursorPos.X < clientAreaLocation.X + clientAreaSize.Width &&
+                            cursorPos.Y >= clientAreaLocation.Y && cursorPos.Y < clientAreaLocation.Y + clientAreaSize.Height)
+                        {
+                            relativeX = cursorPos.X - clientAreaLocation.X;
+                            relativeY = cursorPos.Y - clientAreaLocation.Y;
+                            foundCursorWindow = true;
+                            break;
+                        }
+                    }
+                    
+                    // If cursor is not over any window, don't do anything
+                    if (!foundCursorWindow)
+                    {
+                        // Just activate if not active, but don't send any clicks
+                        if (!IsActive)
+                        {
+                            ShouldActivate?.Invoke(this, EventArgs.Empty);
+                            CurrentMode = MulticontrollerMode.MirrorAll;
+                        }
+                        return true;
+                    }
+                    
+                    // If multicontroller is not active, activate it and switch to mirror mode
+                    if (!IsActive)
+                    {
+                        ShouldActivate?.Invoke(this, EventArgs.Empty);
+                        CurrentMode = MulticontrollerMode.MirrorAll;
+                        
+                        // Small delay to ensure activation completes before sending clicks
+                        System.Threading.Thread.Sleep(50);
+                    }
+                    
+                    // Send click to active controllers only (respects group selection)
+                    IEnumerable<ToontownController> affectedControllers = ActiveControllers;
+                    
+                    foreach (ToontownController controller in affectedControllers)
+                    {
+                        if (controller.HasWindow)
+                        {
+                            // Use the same relative position for all windows
+                            // Create lParam with x,y coordinates (x in low word, y in high word)
+                            IntPtr clickLParam = (IntPtr)((relativeY << 16) | (relativeX & 0xFFFF));
+                            
+                            // Send left button down and up (instant click)
+                            controller.PostMessage(Win32.WM.LBUTTONDOWN, (IntPtr)Win32.MK_LBUTTON, clickLParam);
+                            controller.PostMessage(Win32.WM.LBUTTONUP, IntPtr.Zero, clickLParam);
+                        }
                     }
                 }
-                
-                // If we are releasing the key to deactivate multiclick then turn it off.
-                if (msg == Win32.WM.KEYUP)
+                else if (msg == Win32.WM.KEYUP)
                 {
-                    Properties.Settings.Default.replicateMouse = false;
-                    Properties.Settings.Default.Save();
-                    SettingChanged?.Invoke(this, EventArgs.Empty);
+                    // Reset flag when key is released
+                    multiClickKeyPressed = false;
                 }
             }
             else if (keysPressed == (Keys)Properties.Settings.Default.controlAllGroupsKeyCode)
@@ -693,7 +752,7 @@ namespace TTMulti
                 && Properties.Settings.Default.zeroPowerThrowKeyCode != 0)
             {
                 // Handle Zero Power Throw Hotkey
-                if (msg == Win32.WM.KEYDOWN && IsActive && !zeroPowerThrowKeyPressed)
+                if ((msg == Win32.WM.KEYDOWN || msg == Win32.WM.HOTKEY) && IsActive && !zeroPowerThrowKeyPressed)
                 {
                     // Mark key as pressed to prevent repeats
                     zeroPowerThrowKeyPressed = true;
@@ -749,89 +808,7 @@ namespace TTMulti
         /// <returns>True if the input was handled</returns>
         private bool ProcessMouseInput(Win32.WM msg, IntPtr wParam, IntPtr lParam, ToontownController sourceController)
         {
-            if (IsActive && Properties.Settings.Default.replicateMouse)
-            {
-                IEnumerable<ToontownController> affectedControllers = ActiveControllers;
-
-                if (CurrentMode == MulticontrollerMode.Group
-                    || CurrentMode == MulticontrollerMode.AllGroup
-                    || CurrentMode == MulticontrollerMode.Pair)
-                {
-                    if (sourceController.Type == ControllerType.Left)
-                    {
-                        affectedControllers = affectedControllers.Where(c => c.Type == ControllerType.Left);
-                    }
-                    else
-                    {
-                        affectedControllers = affectedControllers.Where(c => c.Type == ControllerType.Right);
-                    }
-                }
-
-                bool forwardMove = false;
-
-                if (msg == Win32.WM.MOUSEMOVE)
-                {
-                    /*
-                    * Filter out small mouse movements while holding down a button. If MOUSELEAVE is
-                    * fired between BUTTONDOWN & BUTTONUP events, this seems to cancel the click.
-                    * MOUSELEAVE is generated on every MOUSEMOVE since Toontown is not the active window.
-                    */
-
-                    int x = (short)lParam;
-                    int y = (short)(lParam.ToInt32() >> 16);
-
-                    int xDelta = Math.Abs(lastMoveX - x),
-                        yDelta = Math.Abs(lastMoveY - y);
-
-                    bool buttonDown =
-                        ((int)wParam & Win32.MK_LBUTTON) == Win32.MK_LBUTTON
-                        || ((int)wParam & Win32.MK_MBUTTON) == Win32.MK_MBUTTON
-                        || ((int)wParam & Win32.MK_RBUTTON) == Win32.MK_RBUTTON;
-
-                    if (!buttonDown || xDelta > 10 || yDelta > 10)
-                    {
-                        lastMoveX = x;
-                        lastMoveY = y;
-                    }
-
-                    if (buttonDown && (xDelta > 10 || yDelta > 10))
-                    {
-                        forwardMove = true;
-                    }
-
-                    foreach (ToontownController controller in AllControllers)
-                    {
-                        controller.FakeCursorPosition = new Point(x, y);
-                        controller.ShowFakeCursor = controller != sourceController;
-                    }
-                }
-
-                foreach (ToontownController controller in AllControllers)
-                {
-                    if (msg != Win32.WM.MOUSELEAVE && affectedControllers.Contains(controller))
-                    {
-                        bool windowSizeDifferent =
-                            controller.WindowSize.Width > sourceController.WindowSize.Width + 5
-                            || controller.WindowSize.Width < sourceController.WindowSize.Width - 5
-                            || controller.WindowSize.Height > sourceController.WindowSize.Height + 5
-                            || controller.WindowSize.Height < sourceController.WindowSize.Height - 5;
-
-                        controller.IsWindowSizeMismatched = windowSizeDifferent;
-
-                        if (!windowSizeDifferent && (msg != Win32.WM.MOUSEMOVE || forwardMove))
-                        {
-                            controller.PostMessage(msg, wParam, lParam);
-                        }
-                    }
-                    else
-                    {
-                        controller.ShowFakeCursor = false;
-                    }
-                }
-
-                return true;
-            }
-
+            // Mouse input processing removed - multiclick is now instant via hotkey
             return false;
         }
 

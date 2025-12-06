@@ -70,60 +70,16 @@ namespace TTMulti.Forms
                     return;
                 }
 
-                // First try calling Activate() for some time
+                // First try calling Activate()
                 if (sw.ElapsedMilliseconds < 100)
                 {
                     Invoke(new Action(() => this.Activate()));
                 }
-                // If that doesn't work, fake a mouse event to activate the window
+                // If that doesn't work, try SetForegroundWindow and set TopMost
                 else
                 {
                     Invoke(new Action(() => this.TopMost = true));
-
-                    int x = this.DisplayRectangle.Width / 2 + this.Location.X;
-                    int y = this.Location.Y + SystemInformation.CaptionHeight / 2;
-
-                    var virtualScreen = SystemInformation.VirtualScreen;
-                    x = (x - virtualScreen.Left) * 65536 / virtualScreen.Width;
-                    y = (y - virtualScreen.Top) * 65536 / virtualScreen.Height;
-
-                    int oldX = (int)Math.Ceiling((MousePosition.X - virtualScreen.Left) * 65536.0 / virtualScreen.Width),
-                        oldY = (int)Math.Ceiling((MousePosition.Y - virtualScreen.Top) * 65536.0 / virtualScreen.Height);
-
-                    var pInputs = new[]{
-                        new Win32.INPUT() {
-                            type = 0, //mouse event
-                            U = new Win32.InputUnion() {
-                                mi = new Win32.MOUSEINPUT() {
-                                    dx = x,
-                                    dy = y,
-                                    dwFlags = Win32.MOUSEEVENTF.ABSOLUTE | Win32.MOUSEEVENTF.VIRTUALDESK | Win32.MOUSEEVENTF.MOVE | Win32.MOUSEEVENTF.LEFTDOWN
-                                }
-                            }
-                        },
-                        new Win32.INPUT() {
-                            type = 0, //mouse event
-                            U = new Win32.InputUnion() {
-                                mi = new Win32.MOUSEINPUT() {
-                                    dx = 0,
-                                    dy = 0,
-                                    dwFlags = Win32.MOUSEEVENTF.LEFTUP
-                                }
-                            }
-                        },
-                        new Win32.INPUT() {
-                            type = 0, //mouse event
-                            U = new Win32.InputUnion() {
-                                mi = new Win32.MOUSEINPUT() {
-                                    dx = oldX,
-                                    dy = oldY,
-                                    dwFlags = Win32.MOUSEEVENTF.ABSOLUTE | Win32.MOUSEEVENTF.VIRTUALDESK | Win32.MOUSEEVENTF.MOVE
-                                }
-                            }
-                        }
-                    };
-
-                    Win32.SendInput((uint)pInputs.Length, pInputs, Win32.INPUT.Size);
+                    Win32.SetForegroundWindow(hWnd);
                 }
 
                 Thread.Sleep(10);
@@ -281,6 +237,18 @@ namespace TTMulti.Forms
             if (!hotkeyRegistered)
             {
                 hotkeyRegistered = Win32.RegisterHotKey(this.Handle, 0, Win32.KeyModifiers.None, (Keys)Properties.Settings.Default.modeKeyCode);
+                
+                // Register multiclick hotkey globally (ID 1)
+                if (Properties.Settings.Default.replicateMouseKeyCode != 0)
+                {
+                    Win32.RegisterHotKey(this.Handle, 1, Win32.KeyModifiers.None, (Keys)Properties.Settings.Default.replicateMouseKeyCode);
+                }
+                
+                // Register zero power throw hotkey globally (ID 2)
+                if (Properties.Settings.Default.zeroPowerThrowKeyCode != 0)
+                {
+                    Win32.RegisterHotKey(this.Handle, 2, Win32.KeyModifiers.None, (Keys)Properties.Settings.Default.zeroPowerThrowKeyCode);
+                }
             }
 
             return hotkeyRegistered;
@@ -289,6 +257,8 @@ namespace TTMulti.Forms
         private void UnregisterHotkey()
         {
             Win32.UnregisterHotKey(this.Handle, 0);
+            Win32.UnregisterHotKey(this.Handle, 1);
+            Win32.UnregisterHotKey(this.Handle, 2);
 
             hotkeyRegistered = false;
         }

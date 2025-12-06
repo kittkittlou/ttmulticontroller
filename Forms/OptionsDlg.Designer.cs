@@ -543,8 +543,8 @@ namespace TTMulti.Forms
             this.multiclickLabel.Name = "multiclickLabel";
             this.multiclickLabel.Size = new System.Drawing.Size(712, 35);
             this.multiclickLabel.TabIndex = 13;
-            this.multiclickLabel.Text = "This key is used to enable multiclicking while pressed. Keep in mind " +
-                                        "you must be actively in mirror mode for this to function. ";
+            this.multiclickLabel.Text = "Instantly sends a click to all windows at your current cursor position. " +
+                                        "If the multicontroller is not active, it will activate and switch to mirror mode.";
             // 
             // multiclickGroupBox
             // 
@@ -558,7 +558,7 @@ namespace TTMulti.Forms
             this.multiclickGroupBox.Size = new System.Drawing.Size(726, 100);
             this.multiclickGroupBox.TabIndex = 14;
             this.multiclickGroupBox.TabStop = false;
-            this.multiclickGroupBox.Text = "Multiclick Hotkey:";
+            this.multiclickGroupBox.Text = "Instant Multi-Click Hotkey:";
             // 
             // zeroPowerThrowLabel
             // 
@@ -867,6 +867,7 @@ namespace TTMulti.Forms
             this.multiclickKeyPicker.Size = new System.Drawing.Size(188, 25);
             this.multiclickKeyPicker.TabIndex = 12;
             this.multiclickKeyPicker.TabStop = false;
+            this.toolTip1.SetToolTip(this.multiclickKeyPicker, "This hotkey instantly sends a click to all windows at your cursor position. Works globally.");
             // 
             // zeroPowerThrowKeyPicker
             // 

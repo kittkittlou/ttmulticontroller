@@ -292,8 +292,7 @@ namespace TTMulti
                 && (isActiveController || multicontroller.ShowAllBorders);
 
             bool showMouseOverlayWindow = multicontroller.IsActive && HasWindow && !multicontroller.ShowAllBorders
-                && ((isActiveController && Properties.Settings.Default.replicateMouse) 
-                    || Properties.Settings.Default.enableClickToChangeControllers);
+                && Properties.Settings.Default.enableClickToChangeControllers;
 
             if (showBorderWindow && !_borderWnd.Visible)
             {
@@ -344,14 +343,7 @@ namespace TTMulti
                     }
                 }
 
-                if (!Properties.Settings.Default.replicateMouse)
-                {
-                    _borderWnd.ShowFakeCursor = false;
-                }
-                else
-                {
-                    _borderWnd.BorderColor = Colors.Multiclick;
-                }
+                _borderWnd.ShowFakeCursor = false;
             }
 
             if (showMouseOverlayWindow)
@@ -407,12 +399,6 @@ namespace TTMulti
             wndPosInfo = Win32.DeferWindowPos(wndPosInfo, WindowHandle, handles.BorderWindowHandle, 0, 0, 0, 0, Win32.SetWindowPosFlags.DoNotActivate | Win32.SetWindowPosFlags.IgnoreMove | Win32.SetWindowPosFlags.IgnoreResize);
 
             Win32.EndDeferWindowPos(wndPosInfo);
-
-            // Send a mouse button event that is offscreen (-100,-100) to prevent the first mousedown event from
-            // triggering a full click before letting go of the button
-            int lParam = (-100 << 16) | (-100 & 0xFFFF);
-            PostMessage(Win32.WM.RBUTTONDOWN, (IntPtr)Win32.MK_RBUTTON, (IntPtr)lParam);
-            PostMessage(Win32.WM.RBUTTONUP, (IntPtr)Win32.MK_RBUTTON, (IntPtr)lParam);
         }
         
         private void _overlayWnd_MouseEvent(object sender, Message m)
