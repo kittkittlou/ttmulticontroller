@@ -221,6 +221,7 @@
             this.Deactivate += new System.EventHandler(this.MulticontrollerWnd_Deactivate);
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainWnd_FormClosing);
             this.Load += new System.EventHandler(this.MulticontrollerWnd_Load);
+            this.Shown += new System.EventHandler(this.MulticontrollerWnd_Shown);
             this.statusStrip1.ResumeLayout(false);
             this.statusStrip1.PerformLayout();
             this.panel1.ResumeLayout(false);

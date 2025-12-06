@@ -562,6 +562,42 @@ namespace TTMulti.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int autoFindWindowsKeyCode {
+            get {
+                return ((int)(this["autoFindWindowsKeyCode"]));
+            }
+            set {
+                this["autoFindWindowsKeyCode"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int autoFindWindowsKeyModifiers {
+            get {
+                return ((int)(this["autoFindWindowsKeyModifiers"]));
+            }
+            set {
+                this["autoFindWindowsKeyModifiers"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("TTREngine64.exe;CorporateClash.exe;ppython.exe")]
+        public string autoFindExecutables {
+            get {
+                return ((string)(this["autoFindExecutables"]));
+            }
+            set {
+                this["autoFindExecutables"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
         public bool layoutPreset1Enabled {
             get {

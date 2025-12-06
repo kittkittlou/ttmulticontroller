@@ -63,6 +63,9 @@ namespace TTMulti
                     if (_windowHandle != IntPtr.Zero)
                     {
                         WindowWatcher.Instance.WatchWindow(_windowHandle);
+                        // Border position will be updated by WindowWatcher events
+                        // Force an immediate update to ensure borders are correct
+                        UpdateBorderPosition();
                     }
 
                     WindowHandleChanged?.Invoke(this, EventArgs.Empty);
@@ -419,6 +422,29 @@ namespace TTMulti
                     case Win32.WM.MBUTTONDOWN:
                         ShouldActivate?.Invoke(this, EventArgs.Empty);
                         break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Force update border window position and size to match the current window
+        /// </summary>
+        internal void UpdateBorderPosition()
+        {
+            if (!HasWindow)
+                return;
+
+            Win32.RECT clientRect;
+            if (Win32.GetClientRect(WindowHandle, out clientRect))
+            {
+                Size clientSize = new Size(clientRect.Right - clientRect.Left, clientRect.Bottom - clientRect.Top);
+                WindowSize = clientSize;
+                
+                Point clientLocation = Point.Empty;
+                if (Win32.ClientToScreen(WindowHandle, ref clientLocation))
+                {
+                    _borderWnd.Size = _overlayWnd.Size = clientSize;
+                    _borderWnd.Location = _overlayWnd.Location = clientLocation;
                 }
             }
         }

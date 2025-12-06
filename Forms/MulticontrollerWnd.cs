@@ -174,11 +174,11 @@ namespace TTMulti.Forms
                     ret = controller.ProcessInput(m.Msg, m.WParam, m.LParam);
                     break;
                 case Win32.WM.HOTKEY:
-                    // Check if this is a layout preset hotkey (IDs 3-6)
+                    // Check if this is a layout preset hotkey (IDs 3-6) or auto-find (ID 7)
                     int hotkeyId = m.WParam.ToInt32();
-                    if (hotkeyId >= 3 && hotkeyId <= 6)
+                    if (hotkeyId >= 3 && hotkeyId <= 6 || hotkeyId == 7)
                     {
-                        // Let layout hotkeys pass through to WndProc
+                        // Let layout and auto-find hotkeys pass through to WndProc
                         ret = false;
                     }
                     else
@@ -206,6 +206,22 @@ namespace TTMulti.Forms
                     int presetNumber = hotkeyId - 2; // 3->1, 4->2, 5->3, 6->4
                     var preset = LayoutPreset.LoadFromSettings(presetNumber);
                     controller.ApplyLayoutPreset(preset);
+                }
+                // Check if this is auto-find windows hotkey (ID 7)
+                else if (hotkeyId == 7)
+                {
+                    controller.AutoFindAndAssignWindows();
+                    // Re-register hotkeys after auto-find in case window lost focus
+                    // This ensures layout hotkeys continue to work
+                    if (controller.IsActive || controller.AllControllersWithWindows.Any(c => c.IsWindowActive))
+                    {
+                        if (controller.AllControllersWithWindows.Any(c => c.IsWindowActive))
+                        {
+                            RegisterHotkey();
+                        }
+                        RegisterLayoutHotkeys();
+                        RegisterAutoFindHotkey();
+                    }
                 }
                 else
                 {
@@ -259,6 +275,7 @@ namespace TTMulti.Forms
             // Unregister all hotkeys
             UnregisterHotkey();
             UnregisterLayoutHotkeys();
+            UnregisterAutoFindHotkey();
             
             // Re-register hotkeys if multicontroller is active or windows are active
             if (controller.IsActive || controller.AllControllersWithWindows.Any(c => c.IsWindowActive))
@@ -268,6 +285,7 @@ namespace TTMulti.Forms
                     RegisterHotkey();
                 }
                 RegisterLayoutHotkeys();
+                RegisterAutoFindHotkey();
             }
         }
 
@@ -289,6 +307,7 @@ namespace TTMulti.Forms
                     Win32.RegisterHotKey(this.Handle, 2, Win32.KeyModifiers.None, (Keys)Properties.Settings.Default.zeroPowerThrowKeyCode);
                 }
 
+                // Note: Auto-find hotkey (ID 7) is registered separately and always available
                 // Note: Layout hotkeys (IDs 3-6) are registered separately via RegisterLayoutHotkeys()
             }
 
@@ -325,6 +344,28 @@ namespace TTMulti.Forms
             Win32.UnregisterHotKey(this.Handle, 4);
             Win32.UnregisterHotKey(this.Handle, 5);
             Win32.UnregisterHotKey(this.Handle, 6);
+        }
+
+        private void RegisterAutoFindHotkey()
+        {
+            // Register auto-find windows hotkey (ID 7) - only when multicontroller is active
+            if (Properties.Settings.Default.autoFindWindowsKeyCode != 0)
+            {
+                bool success = Win32.RegisterHotKey(this.Handle, 7, (Win32.KeyModifiers)Properties.Settings.Default.autoFindWindowsKeyModifiers, (Keys)Properties.Settings.Default.autoFindWindowsKeyCode);
+                if (!success)
+                {
+                    // Hotkey registration failed - might be already registered or invalid combination
+                    // Try unregistering first, then re-registering
+                    Win32.UnregisterHotKey(this.Handle, 7);
+                    Win32.RegisterHotKey(this.Handle, 7, (Win32.KeyModifiers)Properties.Settings.Default.autoFindWindowsKeyModifiers, (Keys)Properties.Settings.Default.autoFindWindowsKeyCode);
+                }
+            }
+        }
+
+        private void UnregisterAutoFindHotkey()
+        {
+            // Unregister auto-find hotkey (ID 7)
+            Win32.UnregisterHotKey(this.Handle, 7);
         }
 
         private void MulticontrollerWnd_Load(object sender, EventArgs e)
@@ -374,6 +415,17 @@ namespace TTMulti.Forms
             // Multicontroller could have loaded groups
             UpdateWindowStatus();
         }
+        
+        private void MulticontrollerWnd_Shown(object sender, EventArgs e)
+        {
+            // When window is first shown, check if it's active and register hotkeys
+            if (this.ContainsFocus || Win32.GetForegroundWindow() == this.Handle)
+            {
+                controller.IsActive = true;
+                RegisterLayoutHotkeys();
+                RegisterAutoFindHotkey();
+            }
+        }
 
         private void RightController_WindowHandleChanged(object sender, EventArgs e)
         {
@@ -387,9 +439,22 @@ namespace TTMulti.Forms
 
         private void Controller_AllWindowsInactive(object sender, EventArgs e)
         {
-            UnregisterHotkey();
-            // Unregister layout hotkeys when all windows are inactive
-            UnregisterLayoutHotkeys();
+            // Only unregister hotkeys if multicontroller window is also inactive
+            // If multicontroller window is active, keep hotkeys registered
+            if (!controller.IsActive)
+            {
+                UnregisterHotkey();
+                // Unregister layout hotkeys when all windows are inactive
+                UnregisterLayoutHotkeys();
+                // Unregister auto-find hotkey when all windows are inactive
+                UnregisterAutoFindHotkey();
+            }
+            else
+            {
+                // Multicontroller window is still active, ensure hotkeys are registered
+                RegisterLayoutHotkeys();
+                RegisterAutoFindHotkey();
+            }
         }
 
         private void Controller_WindowActivated(object sender, EventArgs e)
@@ -397,6 +462,8 @@ namespace TTMulti.Forms
             RegisterHotkey();
             // Also register layout hotkeys when a Toontown window is active
             RegisterLayoutHotkeys();
+            // Register auto-find hotkey when a Toontown window is active
+            RegisterAutoFindHotkey();
         }
 
         private void MainWnd_FormClosing(object sender, FormClosingEventArgs e)
@@ -413,6 +480,17 @@ namespace TTMulti.Forms
         private void Controller_GroupsChanged(object sender, EventArgs e)
         {
             this.UpdateWindowStatus();
+            
+            // Re-register hotkeys if multicontroller is active (groups may have been added/removed)
+            if (controller.IsActive || controller.AllControllersWithWindows.Any(c => c.IsWindowActive))
+            {
+                if (controller.AllControllersWithWindows.Any(c => c.IsWindowActive))
+                {
+                    RegisterHotkey();
+                }
+                RegisterLayoutHotkeys();
+                RegisterAutoFindHotkey();
+            }
         }
 
         private void Controller_ActiveControllersChanged(object sender, EventArgs e)
@@ -496,6 +574,8 @@ namespace TTMulti.Forms
             controller.IsActive = true;
             // Register layout hotkeys when multicontroller window is active
             RegisterLayoutHotkeys();
+            // Register auto-find hotkey when multicontroller window is active
+            RegisterAutoFindHotkey();
         }
 
         private void MulticontrollerWnd_Deactivate(object sender, EventArgs e)
@@ -503,6 +583,8 @@ namespace TTMulti.Forms
             controller.IsActive = false;
             // Unregister layout hotkeys when multicontroller window is inactive
             UnregisterLayoutHotkeys();
+            // Unregister auto-find hotkey when multicontroller window is inactive
+            UnregisterAutoFindHotkey();
         }
     }
 }

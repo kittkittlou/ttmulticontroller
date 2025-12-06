@@ -6,6 +6,7 @@ using System.Windows.Forms;
 using System.Drawing;
 using System.Threading;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using TTMulti.Forms;
 
 namespace TTMulti
@@ -1010,6 +1011,164 @@ namespace TTMulti
         }
 
         /// <summary>
+        /// Automatically find and assign windows from recognized game executables
+        /// </summary>
+        public void AutoFindAndAssignWindows()
+        {
+            var executableNames = Properties.Settings.Default.autoFindExecutables
+                .Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(e => e.Trim())
+                .Where(e => !string.IsNullOrEmpty(e))
+                .ToList();
+
+            if (executableNames.Count == 0)
+                return;
+
+            // Get currently assigned window handles to check if we're adding new ones
+            var currentlyAssignedHandles = new HashSet<IntPtr>(
+                AllControllersWithWindows.Select(c => c.WindowHandle).Where(h => h != IntPtr.Zero)
+            );
+
+            // Find all processes matching the executable names and get their main windows
+            var foundWindows = new List<IntPtr>();
+            var processNames = new HashSet<string>(executableNames, StringComparer.OrdinalIgnoreCase);
+            
+            // Also create a set without .exe extension for matching
+            var processNamesNoExt = new HashSet<string>(
+                executableNames.Select(e => System.IO.Path.GetFileNameWithoutExtension(e)), 
+                StringComparer.OrdinalIgnoreCase
+            );
+            
+            foreach (var process in Process.GetProcesses())
+            {
+                try
+                {
+                    // Check if this process matches one of our executable names (with or without .exe)
+                    bool matches = processNames.Contains(process.ProcessName) || 
+                                   processNamesNoExt.Contains(process.ProcessName);
+                    
+                    if (matches)
+                    {
+                        // Get the main window handle for this process
+                        IntPtr mainWindowHandle = process.MainWindowHandle;
+                        
+                        // If MainWindowHandle is zero, try to find the window using EnumWindows
+                        if (mainWindowHandle == IntPtr.Zero)
+                        {
+                            // Find the first visible window for this process
+                            Win32.EnumWindows((hWnd, lParam) =>
+                            {
+                                uint processId;
+                                Win32.GetWindowThreadProcessId(hWnd, out processId);
+                                if (processId == process.Id && Win32.IsWindowVisible(hWnd))
+                                {
+                                    mainWindowHandle = hWnd;
+                                    return false; // Stop enumeration
+                                }
+                                return true; // Continue enumeration
+                            }, IntPtr.Zero);
+                        }
+                        
+                        // Only add if it's a valid window handle and the window is visible
+                        if (mainWindowHandle != IntPtr.Zero && Win32.IsWindowVisible(mainWindowHandle))
+                        {
+                            // Verify the window is still valid
+                            if (Win32.IsWindow(mainWindowHandle))
+                            {
+                                foundWindows.Add(mainWindowHandle);
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // Process might have exited or we don't have access, ignore
+                }
+            }
+
+            if (foundWindows.Count == 0)
+                return;
+
+            // Filter out windows that are already assigned
+            var newWindows = foundWindows.Where(h => !currentlyAssignedHandles.Contains(h)).ToList();
+
+            // If no new windows to add, do nothing
+            if (newWindows.Count == 0)
+                return;
+
+            // First, find all empty controller slots (controllers without windows)
+            var emptyControllers = AllControllers.Where(c => !c.HasWindow).ToList();
+
+            // Assign new windows to empty slots first, then create new groups if needed
+            int newWindowIndex = 0;
+            
+            // Fill empty slots first
+            foreach (var emptyController in emptyControllers)
+            {
+                if (newWindowIndex >= newWindows.Count)
+                    break;
+                
+                emptyController.WindowHandle = newWindows[newWindowIndex];
+                newWindowIndex++;
+            }
+
+            // If there are still new windows to assign, create new groups and assign them
+            while (newWindowIndex < newWindows.Count)
+            {
+                // Calculate which group this window belongs to (every 2 windows = 1 group)
+                // Count all currently assigned windows to determine the next group
+                int totalAssignedCount = AllControllersWithWindows.Count();
+                int groupIndex = totalAssignedCount / 2;
+                
+                // Ensure we have enough groups
+                while (groupIndex >= ControllerGroups.Count)
+                {
+                    AddControllerGroup();
+                }
+
+                var group = ControllerGroups[groupIndex];
+
+                // Ensure we have at least one pair in this group
+                if (group.ControllerPairs.Count == 0)
+                {
+                    group.AddPair();
+                }
+
+                // Determine if this is left (even index) or right (odd index)
+                bool isLeft = (totalAssignedCount % 2) == 0;
+                int pairIndex = 0; // Always use first pair in each group
+
+                var pair = group.ControllerPairs[pairIndex];
+                var controller = isLeft ? pair.LeftController : pair.RightController;
+
+                // Assign the window
+                controller.WindowHandle = newWindows[newWindowIndex];
+                newWindowIndex++;
+            }
+
+            // Force update all border positions after assignment
+            // This ensures borders are correctly positioned even if windows haven't been moved yet
+            // Process window messages to allow window assignment to complete
+            System.Windows.Forms.Application.DoEvents();
+            System.Threading.Thread.Sleep(10); // Small delay to ensure windows are ready
+            System.Windows.Forms.Application.DoEvents();
+            foreach (var controller in AllControllersWithWindows)
+            {
+                controller.UpdateBorderPosition();
+            }
+
+            // Automatically set to mirror mode and apply layout preset 1
+            CurrentMode = MulticontrollerMode.MirrorAll;
+            
+            // Load and apply preset 1
+            var preset1 = LayoutPreset.LoadFromSettings(1);
+            if (preset1.Enabled)
+            {
+                ApplyLayoutPreset(preset1);
+            }
+        }
+
+        /// <summary>
         /// Apply a layout preset to all windows with handles
         /// </summary>
         public void ApplyLayoutPreset(LayoutPreset preset)
@@ -1043,6 +1202,17 @@ namespace TTMulti
                     windowSize.Height,
                     Win32.SetWindowPosFlags.ShowWindow | Win32.SetWindowPosFlags.DoNotActivate
                 );
+            }
+
+            // Force update all border positions after moving windows
+            // WindowWatcher will eventually update them, but this ensures immediate correctness
+            // Process window messages to allow SetWindowPos to complete
+            System.Windows.Forms.Application.DoEvents();
+            System.Threading.Thread.Sleep(10); // Small delay to ensure windows have moved
+            System.Windows.Forms.Application.DoEvents();
+            foreach (var controller in controllersWithWindows)
+            {
+                controller.UpdateBorderPosition();
             }
         }
     }

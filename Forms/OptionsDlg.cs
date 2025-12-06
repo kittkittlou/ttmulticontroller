@@ -188,6 +188,15 @@ namespace TTMulti.Forms
             this.Enabled = true;
         }
 
+        // Auto-find controls
+        private GroupBox autoFindGroupBox;
+        private KeyPicker autoFindKeyPicker;
+        private CheckBox autoFindAltCheckBox;
+        private CheckBox autoFindCtrlCheckBox;
+        private CheckBox autoFindShiftCheckBox;
+        private TextBox autoFindExecutablesTextBox;
+        private Label autoFindExecutablesLabel;
+
         private void OptionsDlg_Load(object sender, EventArgs e)
         {
             controlsPicker.KeyMappings = Properties.SerializedSettings.Default.Bindings;
@@ -198,7 +207,145 @@ namespace TTMulti.Forms
                 LoadLayoutPreset(i + 1);
             }
 
+            CreateAutoFindTab();
+            LoadAutoFindSettings();
+
             loaded = true;
+        }
+
+        private void CreateAutoFindTab()
+        {
+            // Create a new tab page for Auto-Find
+            var autoFindTab = new TabPage("Auto-Find");
+            autoFindTab.AutoScroll = true;
+            autoFindTab.Padding = new Padding(10);
+            
+            // Add the tab to the tab control
+            tabControl1.TabPages.Add(autoFindTab);
+
+            // Create main group box
+            autoFindGroupBox = new GroupBox
+            {
+                Text = "Auto-Find Windows",
+                Location = new Point(10, 10),
+                Size = new Size(720, 200),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            };
+
+            // Description label
+            var descLabel = new Label
+            {
+                Text = "Automatically find and assign windows from recognized game executables. " +
+                       "Windows are assigned sequentially:\n Group 1 Left, Group 1 Right, Group 2 Left, Group 2 Right, etc.",
+                Location = new Point(10, 25),
+                Size = new Size(700, 50),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            };
+            autoFindGroupBox.Controls.Add(descLabel);
+
+            // Executables label
+            autoFindExecutablesLabel = new Label
+            {
+                Text = "Executables (semicolon-separated):",
+                Location = new Point(10, 85),
+                Size = new Size(300, 20)
+            };
+            autoFindGroupBox.Controls.Add(autoFindExecutablesLabel);
+
+            // Executables text box
+            autoFindExecutablesTextBox = new TextBox
+            {
+                Location = new Point(10, 105),
+                Size = new Size(500, 23),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            };
+            autoFindGroupBox.Controls.Add(autoFindExecutablesTextBox);
+
+            // Hotkey section label
+            var hotkeySectionLabel = new Label
+            {
+                Text = "Hotkey Configuration:",
+                Location = new Point(10, 140),
+                Size = new Size(200, 20),
+                Font = new Font(autoFindGroupBox.Font, FontStyle.Bold)
+            };
+            autoFindGroupBox.Controls.Add(hotkeySectionLabel);
+
+            // Hotkey label
+            var hotkeyLabel = new Label
+            {
+                Text = "Hotkey:",
+                Location = new Point(10, 165),
+                Size = new Size(60, 20)
+            };
+            autoFindGroupBox.Controls.Add(hotkeyLabel);
+
+            // Hotkey picker
+            autoFindKeyPicker = new KeyPicker
+            {
+                Location = new Point(80, 163),
+                Size = new Size(120, 23)
+            };
+            autoFindGroupBox.Controls.Add(autoFindKeyPicker);
+
+            // Modifier checkboxes
+            autoFindAltCheckBox = new CheckBox
+            {
+                Text = "Alt",
+                Location = new Point(210, 165),
+                Size = new Size(50, 20)
+            };
+            autoFindGroupBox.Controls.Add(autoFindAltCheckBox);
+
+            autoFindCtrlCheckBox = new CheckBox
+            {
+                Text = "Ctrl",
+                Location = new Point(270, 165),
+                Size = new Size(50, 20)
+            };
+            autoFindGroupBox.Controls.Add(autoFindCtrlCheckBox);
+
+            autoFindShiftCheckBox = new CheckBox
+            {
+                Text = "Shift",
+                Location = new Point(330, 165),
+                Size = new Size(60, 20)
+            };
+            autoFindGroupBox.Controls.Add(autoFindShiftCheckBox);
+
+            // Add group box to tab
+            autoFindTab.Controls.Add(autoFindGroupBox);
+        }
+
+        private void LoadAutoFindSettings()
+        {
+            if (autoFindExecutablesTextBox == null)
+                return;
+
+            autoFindExecutablesTextBox.Text = Properties.Settings.Default.autoFindExecutables;
+            autoFindKeyPicker.ChosenKey = (Keys)Properties.Settings.Default.autoFindWindowsKeyCode;
+            autoFindAltCheckBox.Checked = ((Win32.KeyModifiers)Properties.Settings.Default.autoFindWindowsKeyModifiers & Win32.KeyModifiers.Alt) != 0;
+            autoFindCtrlCheckBox.Checked = ((Win32.KeyModifiers)Properties.Settings.Default.autoFindWindowsKeyModifiers & Win32.KeyModifiers.Control) != 0;
+            autoFindShiftCheckBox.Checked = ((Win32.KeyModifiers)Properties.Settings.Default.autoFindWindowsKeyModifiers & Win32.KeyModifiers.Shift) != 0;
+        }
+
+        private void SaveAutoFindSettings()
+        {
+            if (autoFindExecutablesTextBox == null)
+                return;
+
+            Properties.Settings.Default.autoFindExecutables = autoFindExecutablesTextBox.Text;
+            Properties.Settings.Default.autoFindWindowsKeyCode = (int)autoFindKeyPicker.ChosenKey;
+
+            Win32.KeyModifiers modifiers = Win32.KeyModifiers.None;
+            if (autoFindAltCheckBox.Checked)
+                modifiers |= Win32.KeyModifiers.Alt;
+            if (autoFindCtrlCheckBox.Checked)
+                modifiers |= Win32.KeyModifiers.Control;
+            if (autoFindShiftCheckBox.Checked)
+                modifiers |= Win32.KeyModifiers.Shift;
+
+            Properties.Settings.Default.autoFindWindowsKeyModifiers = (int)modifiers;
         }
 
         private void LoadLayoutPreset(int presetNumber)
@@ -241,6 +388,9 @@ namespace TTMulti.Forms
             {
                 SaveLayoutPreset(i + 1);
             }
+
+            // Save auto-find settings
+            SaveAutoFindSettings();
             
             Properties.Settings.Default.Save();
             DialogResult = DialogResult.OK;
