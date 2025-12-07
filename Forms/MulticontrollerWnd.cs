@@ -136,8 +136,11 @@ namespace TTMulti.Forms
                 case Keys.Down:
                 case Keys.Left:
                 case Keys.Right:
-                case Keys.Alt:
                     return true;
+                case Keys.Alt:
+                    // Forward Alt key to ProcessInput for switching mode handling
+                    // Don't consume it here - let ProcessInput decide
+                    return controller.ProcessInput(msg.Msg, msg.WParam, msg.LParam);
                 default:
                     break;
             }

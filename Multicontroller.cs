@@ -507,6 +507,12 @@ namespace TTMulti
 
         private void ExitSwitchingMode()
         {
+            // If only one controller was selected (first selected but not second), disconnect it
+            if (_firstSelectedController != null && _secondSelectedController == null)
+            {
+                _firstSelectedController.WindowHandle = IntPtr.Zero;
+            }
+            
             _switchingMode = false;
             _switchingModeTimer.Stop();
             _firstSelectedController = null;
@@ -576,6 +582,40 @@ namespace TTMulti
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Get the window handle under the cursor that isn't already assigned to a controller
+        /// </summary>
+        private IntPtr GetUnassignedWindowHandleUnderCursor()
+        {
+            Point cursorPos;
+            if (!Win32.GetCursorPos(out cursorPos))
+                return IntPtr.Zero;
+
+            // Get the window at the cursor position
+            IntPtr hWnd = Win32.WindowFromPoint(cursorPos);
+            if (hWnd == IntPtr.Zero)
+                return IntPtr.Zero;
+
+            // Get the root window (top-level window)
+            IntPtr rootWnd = Win32.GetAncestor(hWnd, Win32.GetAncestorFlags.GetRoot);
+            if (rootWnd == IntPtr.Zero)
+                return IntPtr.Zero;
+
+            // Check if this window is already assigned to a controller
+            var currentlyAssignedHandles = new HashSet<IntPtr>(
+                AllControllersWithWindows.Select(c => c.WindowHandle).Where(h => h != IntPtr.Zero)
+            );
+
+            if (currentlyAssignedHandles.Contains(rootWnd))
+                return IntPtr.Zero;
+
+            // Verify the window is visible and valid
+            if (!Win32.IsWindowVisible(rootWnd) || !Win32.IsWindow(rootWnd))
+                return IntPtr.Zero;
+
+            return rootWnd;
         }
 
         private void SwitchWindows(ToontownController controller1, ToontownController controller2)
@@ -861,38 +901,20 @@ namespace TTMulti
                     CurrentMode = MulticontrollerMode.AllGroup;
                 }
             }
-            else if (CurrentMode == MulticontrollerMode.Group
-                && ControllerGroups.Count > 1
-                && (keysPressed >= Keys.D0 && keysPressed <= Keys.D9
-                    || keysPressed >= Keys.NumPad0 && keysPressed <= Keys.NumPad9))
-            {
-                // Change groups while in group mode
-                int index;
-
-                if (keysPressed >= Keys.D0 && keysPressed <= Keys.D9)
-                {
-                    index = 9 - (Keys.D9 - keysPressed);
-                }
-                else
-                {
-                    index = 9 - (Keys.NumPad9 - keysPressed);
-                }
-
-                index = index == 0 ? 9 : index - 1;
-
-                if (ControllerGroups.Count > index)
-                {
-                    CurrentGroupIndex = index;
-                }
-            }
             else if (keysPressed == Keys.Menu) // Alt key
             {
                 // Handle Alt key for switching mode
                 if (msg == Win32.WM.SYSKEYDOWN || msg == Win32.WM.KEYDOWN)
                 {
-                    if (!_switchingMode && IsActive && AllControllersWithWindows.Any())
+                    if (!_switchingMode)
                     {
-                        // Enter switching mode
+                        // Enter switching mode (allow even when not active or no windows are connected)
+                        // Activate multicontroller if not already active
+                        if (!IsActive)
+                        {
+                            ShouldActivate?.Invoke(this, EventArgs.Empty);
+                        }
+                        
                         _switchingMode = true;
                         _firstSelectedController = null;
                         _secondSelectedController = null;
@@ -940,6 +962,148 @@ namespace TTMulti
                         }
                     }
                     return true;
+                }
+            }
+            else if (_switchingMode && (keysPressed >= Keys.D1 && keysPressed <= Keys.D9
+                || keysPressed >= Keys.NumPad1 && keysPressed <= Keys.NumPad9))
+            {
+                // Handle number keys in switching mode to assign windows to specific numbers
+                if (msg == Win32.WM.KEYDOWN || msg == Win32.WM.SYSKEYDOWN)
+                {
+                    IntPtr windowHandle = IntPtr.Zero;
+                    
+                    // First try to get an already-assigned controller under cursor
+                    var controllerUnderCursor = GetControllerUnderCursor();
+                    if (controllerUnderCursor != null && controllerUnderCursor.HasWindow)
+                    {
+                        windowHandle = controllerUnderCursor.WindowHandle;
+                    }
+                    else
+                    {
+                        // If no assigned controller, try to find an unassigned window under cursor
+                        windowHandle = GetUnassignedWindowHandleUnderCursor();
+                    }
+
+                    if (windowHandle != IntPtr.Zero)
+                    {
+                        // First, remove this window from all existing controllers
+                        foreach (var controller in AllControllers)
+                        {
+                            if (controller.WindowHandle == windowHandle)
+                            {
+                                controller.WindowHandle = IntPtr.Zero;
+                            }
+                        }
+
+                        // Convert key to number (1-9)
+                        int number;
+                        if (keysPressed >= Keys.D1 && keysPressed <= Keys.D9)
+                        {
+                            number = keysPressed - Keys.D0;
+                        }
+                        else
+                        {
+                            number = keysPressed - Keys.NumPad0;
+                        }
+
+                        // Calculate group and type from number
+                        // Number 1 = Group 1 Left, Number 2 = Group 1 Right, Number 3 = Group 2 Left, etc.
+                        int groupNumber = ((number - 1) / 2) + 1;
+                        ControllerType targetType = (number % 2 == 1) ? ControllerType.Left : ControllerType.Right;
+
+                        // Find or create the group
+                        ControllerGroup targetGroup = ControllerGroups.FirstOrDefault(g => g.GroupNumber == groupNumber);
+                        if (targetGroup == null)
+                        {
+                            // Create new groups until we have the target group
+                            while (ControllerGroups.Count < groupNumber)
+                            {
+                                AddControllerGroup();
+                            }
+                            targetGroup = ControllerGroups[groupNumber - 1];
+                        }
+
+                        // Find the first unused controller of the target type in this group
+                        ToontownController targetController = null;
+                        foreach (var pair in targetGroup.ControllerPairs.OrderBy(p => p.PairNumber))
+                        {
+                            var candidate = (targetType == ControllerType.Left) ? pair.LeftController : pair.RightController;
+                            if (!candidate.HasWindow)
+                            {
+                                targetController = candidate;
+                                break;
+                            }
+                        }
+
+                        // If no unused controller found, create a new pair
+                        if (targetController == null)
+                        {
+                            var newPair = targetGroup.AddPair();
+                            targetController = (targetType == ControllerType.Left) ? newPair.LeftController : newPair.RightController;
+                        }
+
+                        // Assign the window to the target controller
+                        if (targetController != null)
+                        {
+                            targetController.WindowHandle = windowHandle;
+                            UpdateSwitchingModeDisplay();
+                        }
+                    }
+                    return true;
+                }
+            }
+            else if (_switchingMode && keysPressed == Keys.X)
+            {
+                // Handle X key in switching mode (can be KEYDOWN or SYSKEYDOWN when Alt is held)
+                if (msg == Win32.WM.KEYDOWN || msg == Win32.WM.SYSKEYDOWN)
+                {
+                    var controllerUnderCursor = GetControllerUnderCursor();
+                    if (controllerUnderCursor != null)
+                    {
+                        if (_firstSelectedController == null)
+                        {
+                            // Select first window
+                            _firstSelectedController = controllerUnderCursor;
+                            UpdateSwitchingModeDisplay();
+                        }
+                        else if (_secondSelectedController == null && controllerUnderCursor != _firstSelectedController)
+                        {
+                            // Select second window and switch
+                            _secondSelectedController = controllerUnderCursor;
+                            SwitchWindows(_firstSelectedController, _secondSelectedController);
+                            
+                            // Reset selection state but keep switching mode active (Alt is still held)
+                            _firstSelectedController = null;
+                            _secondSelectedController = null;
+                            UpdateSwitchingModeDisplay();
+                        }
+                    }
+                    return true;
+                }
+            }
+            else if (CurrentMode == MulticontrollerMode.Group
+                && !_switchingMode  // Don't handle group switching when in switching mode
+                && ControllerGroups.Count > 1
+                && (keysPressed >= Keys.D0 && keysPressed <= Keys.D9
+                    || keysPressed >= Keys.NumPad0 && keysPressed <= Keys.NumPad9))
+            {
+                // Change groups while in group mode
+                int index;
+
+                if (keysPressed >= Keys.D0 && keysPressed <= Keys.D9)
+                {
+                    index = 9 - (Keys.D9 - keysPressed);
+                }
+                else
+                {
+                    index = 9 - (Keys.NumPad9 - keysPressed);
+                }
+
+                index = index == 0 ? 9 : index - 1;
+
+                if (ControllerGroups.Count > index)
+                {
+                    CurrentGroupIndex = index;
                 }
             }
             else if (keysPressed == (Keys)Properties.Settings.Default.zeroPowerThrowKeyCode 
