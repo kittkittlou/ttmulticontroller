@@ -61,7 +61,16 @@ namespace TTMulti
                 {
                     _instance = new Multicontroller();
 
-                    for (int i = 0; i < Properties.Settings.Default.numberOfGroups; i++)
+                    int numberOfGroups = Properties.Settings.Default.numberOfGroups;
+                    // Ensure at least one group is always created
+                    if (numberOfGroups <= 0)
+                    {
+                        numberOfGroups = 1;
+                        Properties.Settings.Default.numberOfGroups = 1;
+                        Properties.Settings.Default.Save();
+                    }
+
+                    for (int i = 0; i < numberOfGroups; i++)
                     {
                         _instance.AddControllerGroup();
                     }
@@ -120,7 +129,11 @@ namespace TTMulti
                 switch (CurrentMode)
                 {
                     case MulticontrollerMode.Group:
-                        return ControllerGroups[CurrentGroupIndex].AllControllers;
+                        if (ControllerGroups.Count > 0 && CurrentGroupIndex < ControllerGroups.Count)
+                        {
+                            return ControllerGroups[CurrentGroupIndex].AllControllers;
+                        }
+                        return new ToontownController[] { };
                     case MulticontrollerMode.AllGroup:
                     case MulticontrollerMode.MirrorAll:
                         return AllControllers;
@@ -224,7 +237,11 @@ namespace TTMulti
                 }
                 else
                 {
-                    return ControllerGroups[CurrentGroupIndex].LeftControllers;
+                    if (ControllerGroups.Count > 0 && CurrentGroupIndex < ControllerGroups.Count)
+                    {
+                        return ControllerGroups[CurrentGroupIndex].LeftControllers;
+                    }
+                    return new ToontownController[] { };
                 }
             }
         }
@@ -253,7 +270,11 @@ namespace TTMulti
                 }
                 else
                 {
-                    return ControllerGroups[CurrentGroupIndex].RightControllers;
+                    if (ControllerGroups.Count > 0 && CurrentGroupIndex < ControllerGroups.Count)
+                    {
+                        return ControllerGroups[CurrentGroupIndex].RightControllers;
+                    }
+                    return new ToontownController[] { };
                 }
             }
         }
@@ -657,6 +678,11 @@ namespace TTMulti
             group.MouseEvent += Controller_MouseEvent;
 
             ControllerGroups.Add(group);
+            
+            // Update and save numberOfGroups setting to persist groups between sessions
+            Properties.Settings.Default.numberOfGroups = ControllerGroups.Count;
+            Properties.Settings.Default.Save();
+            
             GroupsChanged?.Invoke(this, EventArgs.Empty);
 
             return group;
@@ -689,6 +715,15 @@ namespace TTMulti
             ControllerGroup controllerGroup = ControllerGroups[index];
             controllerGroup.Dispose();
             ControllerGroups.Remove(controllerGroup);
+            
+            // Update and save numberOfGroups setting to persist groups between sessions
+            // Ensure at least one group remains
+            if (ControllerGroups.Count > 0)
+            {
+                Properties.Settings.Default.numberOfGroups = ControllerGroups.Count;
+                Properties.Settings.Default.Save();
+            }
+            
             GroupsChanged?.Invoke(this, EventArgs.Empty);
         }
 

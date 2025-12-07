@@ -382,6 +382,18 @@ namespace TTMulti.Forms
             controller.WindowActivated += Controller_WindowActivated;
             controller.AllWindowsInactive += Controller_AllWindowsInactive;
 
+            // Ensure at least one group exists before accessing it
+            if (controller.ControllerGroups.Count == 0)
+            {
+                controller.AddControllerGroup();
+            }
+
+            // Ensure the first group has at least one pair
+            if (controller.ControllerGroups[0].ControllerPairs.Count == 0)
+            {
+                controller.ControllerGroups[0].AddPair();
+            }
+
             controller.ControllerGroups[0].ControllerPairs[0].LeftController.WindowHandleChanged += LeftController_WindowHandleChanged;
             controller.ControllerGroups[0].ControllerPairs[0].RightController.WindowHandleChanged += RightController_WindowHandleChanged;
 
@@ -432,12 +444,20 @@ namespace TTMulti.Forms
 
         private void RightController_WindowHandleChanged(object sender, EventArgs e)
         {
-            leftToonCrosshair.SelectedWindowHandle = controller.ControllerGroups[0].ControllerPairs[0].LeftController.WindowHandle;
+            if (controller.ControllerGroups.Count > 0 && 
+                controller.ControllerGroups[0].ControllerPairs.Count > 0)
+            {
+                leftToonCrosshair.SelectedWindowHandle = controller.ControllerGroups[0].ControllerPairs[0].LeftController.WindowHandle;
+            }
         }
 
         private void LeftController_WindowHandleChanged(object sender, EventArgs e)
         {
-            rightToonCrosshair.SelectedWindowHandle = controller.ControllerGroups[0].ControllerPairs[0].RightController.WindowHandle;
+            if (controller.ControllerGroups.Count > 0 && 
+                controller.ControllerGroups[0].ControllerPairs.Count > 0)
+            {
+                rightToonCrosshair.SelectedWindowHandle = controller.ControllerGroups[0].ControllerPairs[0].RightController.WindowHandle;
+            }
         }
 
         private void Controller_AllWindowsInactive(object sender, EventArgs e)
@@ -554,12 +574,20 @@ namespace TTMulti.Forms
 
         private void leftToonCrosshair_WindowSelected(object sender, IntPtr handle)
         {
-            controller.ControllerGroups[0].ControllerPairs[0].LeftController.WindowHandle = handle;
+            if (controller.ControllerGroups.Count > 0 && 
+                controller.ControllerGroups[0].ControllerPairs.Count > 0)
+            {
+                controller.ControllerGroups[0].ControllerPairs[0].LeftController.WindowHandle = handle;
+            }
         }
 
         private void rightToonCrosshair_WindowSelected(object sender, IntPtr handle)
         {
-            controller.ControllerGroups[0].ControllerPairs[0].RightController.WindowHandle = handle;
+            if (controller.ControllerGroups.Count > 0 && 
+                controller.ControllerGroups[0].ControllerPairs.Count > 0)
+            {
+                controller.ControllerGroups[0].ControllerPairs[0].RightController.WindowHandle = handle;
+            }
         }
 
         private void multiModeRadio_Click(object sender, EventArgs e)

@@ -57,7 +57,7 @@ namespace TTMulti.Forms
             if (groupsFlowPanel.Controls.Count < 10)
             {
                 addGroup(Multicontroller.Instance.AddControllerGroup());
-                Properties.Settings.Default.numberOfGroups++;
+                // numberOfGroups is now updated and saved automatically in AddControllerGroup()
             }
         }
 
@@ -71,7 +71,7 @@ namespace TTMulti.Forms
                 removeGroupBtn.Enabled = groupsFlowPanel.Controls.Count > 1;
 
                 Multicontroller.Instance.RemoveControllerGroup(Multicontroller.Instance.ControllerGroups.Count - 1);
-                Properties.Settings.Default.numberOfGroups--;
+                // numberOfGroups is now updated and saved automatically in RemoveControllerGroup()
             }
         }
 
