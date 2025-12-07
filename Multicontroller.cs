@@ -1500,24 +1500,38 @@ namespace TTMulti
                 controller.UpdateBorderPosition();
             }
 
-            // Automatically set to mirror mode and apply layout preset 1
+            // Automatically set to mirror mode and apply the last used layout preset (or preset 1 if none used)
             CurrentMode = MulticontrollerMode.MirrorAll;
             
-            // Load and apply preset 1
-            var preset1 = LayoutPreset.LoadFromSettings(1);
-            if (preset1.Enabled)
+            // Get the last used preset number, defaulting to 1 if none has been used
+            int lastUsedPreset = Properties.Settings.Default.lastUsedLayoutPreset;
+            if (lastUsedPreset < 1 || lastUsedPreset > 4)
             {
-                ApplyLayoutPreset(preset1);
+                lastUsedPreset = 1;
+            }
+            
+            // Load and apply the last used preset
+            var preset = LayoutPreset.LoadFromSettings(lastUsedPreset);
+            if (preset.Enabled)
+            {
+                ApplyLayoutPreset(preset, lastUsedPreset);
             }
         }
 
         /// <summary>
         /// Apply a layout preset to all windows with handles
         /// </summary>
-        public void ApplyLayoutPreset(LayoutPreset preset)
+        public void ApplyLayoutPreset(LayoutPreset preset, int? presetNumber = null)
         {
             if (preset == null || !preset.Enabled)
                 return;
+            
+            // Track the last used preset number
+            if (presetNumber.HasValue && presetNumber.Value >= 1 && presetNumber.Value <= 4)
+            {
+                Properties.Settings.Default.lastUsedLayoutPreset = presetNumber.Value;
+                Properties.Settings.Default.Save();
+            }
 
             var controllersWithWindows = AllControllersWithWindows.ToList();
             if (controllersWithWindows.Count == 0)

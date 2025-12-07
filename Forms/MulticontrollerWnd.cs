@@ -208,7 +208,7 @@ namespace TTMulti.Forms
                 {
                     int presetNumber = hotkeyId - 2; // 3->1, 4->2, 5->3, 6->4
                     var preset = LayoutPreset.LoadFromSettings(presetNumber);
-                    controller.ApplyLayoutPreset(preset);
+                    controller.ApplyLayoutPreset(preset, presetNumber);
                 }
                 // Check if this is auto-find windows hotkey (ID 7)
                 else if (hotkeyId == 7)

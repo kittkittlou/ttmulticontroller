@@ -574,6 +574,18 @@ namespace TTMulti.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public int lastUsedLayoutPreset {
+            get {
+                return ((int)(this["lastUsedLayoutPreset"]));
+            }
+            set {
+                this["lastUsedLayoutPreset"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
         public bool layoutPreset1Enabled {
             get {

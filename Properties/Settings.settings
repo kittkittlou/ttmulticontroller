@@ -212,5 +212,8 @@
     <Setting Name="autoFindExecutables" Type="System.String" Scope="User">
       <Value Profile="(Default)">TTREngine64.exe;CorporateClash.exe;ppython.exe</Value>
     </Setting>
+    <Setting Name="lastUsedLayoutPreset" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">1</Value>
+    </Setting>
   </Settings>
 </SettingsFile>
