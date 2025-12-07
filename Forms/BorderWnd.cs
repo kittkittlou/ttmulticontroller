@@ -234,6 +234,11 @@ namespace TTMulti.Forms
             {
                 borderColor = SwitchingSelected ? Colors.SwitchingSelected : Colors.SwitchingMode;
             }
+            else if (SwitchingSelected)
+            {
+                // Keep yellow border even after switching mode exits, until layout/resize
+                borderColor = Colors.SwitchingSelected;
+            }
 
             ControlPaint.DrawBorder(e.Graphics, this.ClientRectangle,
                 borderColor, BorderWidth, ButtonBorderStyle.Solid,

@@ -446,6 +446,7 @@ namespace TTMulti
         private ToontownController _firstSelectedController = null;
         private ToontownController _secondSelectedController = null;
         private System.Windows.Forms.Timer _switchingModeTimer = null;
+        private HashSet<ToontownController> _switchedControllers = new HashSet<ToontownController>();
 
         internal Multicontroller()
         {
@@ -512,7 +513,7 @@ namespace TTMulti
                 {
                     borderWnd.SwitchingMode = true;
                     borderWnd.SwitchingNumber = i + 1;
-                    borderWnd.SwitchingSelected = (controller == _firstSelectedController || controller == _secondSelectedController);
+                    borderWnd.SwitchingSelected = (controller == _firstSelectedController || controller == _secondSelectedController || _switchedControllers.Contains(controller));
                 }
             }
         }
@@ -524,7 +525,7 @@ namespace TTMulti
             _firstSelectedController = null;
             _secondSelectedController = null;
 
-            // Reset all border windows
+            // Reset all border windows, but keep SwitchingSelected true for switched controllers
             foreach (var controller in AllControllersWithWindows)
             {
                 var borderWnd = GetBorderWindow(controller);
@@ -532,9 +533,29 @@ namespace TTMulti
                 {
                     borderWnd.SwitchingMode = false;
                     borderWnd.SwitchingNumber = 0;
+                    // Keep SwitchingSelected true for controllers that were switched
+                    if (!_switchedControllers.Contains(controller))
+                    {
+                        borderWnd.SwitchingSelected = false;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Clear the list of switched controllers and reset their yellow highlighting
+        /// </summary>
+        internal void ClearSwitchedControllers()
+        {
+            foreach (var controller in _switchedControllers)
+            {
+                var borderWnd = GetBorderWindow(controller);
+                if (borderWnd != null)
+                {
                     borderWnd.SwitchingSelected = false;
                 }
             }
+            _switchedControllers.Clear();
         }
 
         private BorderWnd GetBorderWindow(ToontownController controller)
@@ -583,6 +604,10 @@ namespace TTMulti
             // Don't move or resize windows - let user apply layout presets manually if needed
             controller1.WindowHandle = handle2;
             controller2.WindowHandle = handle1;
+
+            // Mark these controllers as switched so they stay yellow until layout/resize
+            _switchedControllers.Add(controller1);
+            _switchedControllers.Add(controller2);
 
             // Update border positions after switching
             System.Windows.Forms.Application.DoEvents();
@@ -1380,6 +1405,9 @@ namespace TTMulti
                     Win32.SetWindowPosFlags.ShowWindow | Win32.SetWindowPosFlags.DoNotActivate
                 );
             }
+
+            // Clear switched controllers list since layout has been applied
+            ClearSwitchedControllers();
 
             // Force update all border positions after moving windows
             // WindowWatcher will eventually update them, but this ensures immediate correctness

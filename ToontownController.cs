@@ -248,6 +248,12 @@ namespace TTMulti
             if (HasWindow && WindowHandle == e.WindowHandle)
             {
                 _borderWnd.Size = _overlayWnd.Size = WindowSize = e.ClientAreaSize;
+                
+                // Clear switched controllers when window is resized (but not on initial detection)
+                if (!e.PreviousClientAreaSize.IsEmpty)
+                {
+                    multicontroller.ClearSwitchedControllers();
+                }
             }
         }
 
@@ -324,32 +330,32 @@ namespace TTMulti
                 // If not in switching mode, set normal border colors
                 if (!_borderWnd.SwitchingMode)
                 {
-                    _borderWnd.ShowGroupNumber = multicontroller.IsActive
-                        && (multicontroller.ShowAllBorders || multicontroller.ControllerGroups.Count > 1);
+                _borderWnd.ShowGroupNumber = multicontroller.IsActive
+                    && (multicontroller.ShowAllBorders || multicontroller.ControllerGroups.Count > 1);
 
-                    if (multicontroller.ShowAllBorders && multicontroller.IsActive)
+                if (multicontroller.ShowAllBorders && multicontroller.IsActive)
+                {
+                    _borderWnd.BorderColor = Type == ControllerType.Left ? Colors.LeftGroup : Colors.RightGroup;
+                }
+                else if (multicontroller.IsActive)
+                {
+                    switch (multicontroller.CurrentMode)
                     {
-                        _borderWnd.BorderColor = Type == ControllerType.Left ? Colors.LeftGroup : Colors.RightGroup;
-                    }
-                    else if (multicontroller.IsActive)
-                    {
-                        switch (multicontroller.CurrentMode)
-                        {
-                            case MulticontrollerMode.Group:
-                            case MulticontrollerMode.Pair:
-                            case MulticontrollerMode.AllGroup:
-                                _borderWnd.BorderColor = Type == ControllerType.Left ? Colors.LeftGroup : Colors.RightGroup;
-                                break;
-                            case MulticontrollerMode.MirrorAll:
-                            case MulticontrollerMode.MirrorGroup:
-                                _borderWnd.BorderColor = Colors.AllGroups;
-                                break;
-                            case MulticontrollerMode.MirrorIndividual:
-                                _borderWnd.BorderColor = Colors.Individual;
-                                break;
-                            case MulticontrollerMode.Focused:
-                                _borderWnd.BorderColor = Colors.Focused;
-                                break;
+                        case MulticontrollerMode.Group:
+                        case MulticontrollerMode.Pair:
+                        case MulticontrollerMode.AllGroup:
+                            _borderWnd.BorderColor = Type == ControllerType.Left ? Colors.LeftGroup : Colors.RightGroup;
+                            break;
+                        case MulticontrollerMode.MirrorAll:
+                        case MulticontrollerMode.MirrorGroup:
+                            _borderWnd.BorderColor = Colors.AllGroups;
+                            break;
+                        case MulticontrollerMode.MirrorIndividual:
+                            _borderWnd.BorderColor = Colors.Individual;
+                            break;
+                        case MulticontrollerMode.Focused:
+                            _borderWnd.BorderColor = Colors.Focused;
+                            break;
                         }
                     }
                 }

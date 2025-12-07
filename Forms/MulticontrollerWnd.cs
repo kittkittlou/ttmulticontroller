@@ -224,8 +224,8 @@ namespace TTMulti.Forms
                     }
                 }
                 else
-                {
-                    controller.ProcessInput(m.Msg, m.WParam, m.LParam);
+            {
+                controller.ProcessInput(m.Msg, m.WParam, m.LParam);
                 }
                 
                 CheckControllerErrors();
@@ -442,8 +442,8 @@ namespace TTMulti.Forms
             // Only unregister hotkeys if multicontroller window is also inactive
             // If multicontroller window is active, keep hotkeys registered
             if (!controller.IsActive)
-            {
-                UnregisterHotkey();
+        {
+            UnregisterHotkey();
                 // Unregister layout hotkeys when all windows are inactive
                 UnregisterLayoutHotkeys();
                 // Unregister auto-find hotkey when all windows are inactive
