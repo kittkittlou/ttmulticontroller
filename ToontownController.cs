@@ -300,8 +300,7 @@ namespace TTMulti
             bool showBorderWindow = multicontroller.IsActive && HasWindow
                 && (isActiveController || multicontroller.ShowAllBorders);
 
-            bool showMouseOverlayWindow = multicontroller.IsActive && HasWindow && !multicontroller.ShowAllBorders
-                && Properties.Settings.Default.enableClickToChangeControllers;
+            bool showMouseOverlayWindow = false; // Feature removed
 
             if (showBorderWindow && !_borderWnd.Visible)
             {
@@ -342,16 +341,11 @@ namespace TTMulti
                     switch (multicontroller.CurrentMode)
                     {
                         case MulticontrollerMode.Group:
-                        case MulticontrollerMode.Pair:
                         case MulticontrollerMode.AllGroup:
                             _borderWnd.BorderColor = Type == ControllerType.Left ? Colors.LeftGroup : Colors.RightGroup;
                             break;
                         case MulticontrollerMode.MirrorAll:
-                        case MulticontrollerMode.MirrorGroup:
                             _borderWnd.BorderColor = Colors.AllGroups;
-                            break;
-                        case MulticontrollerMode.MirrorIndividual:
-                            _borderWnd.BorderColor = Colors.Individual;
                             break;
                         case MulticontrollerMode.Focused:
                             _borderWnd.BorderColor = Colors.Focused;
@@ -423,17 +417,6 @@ namespace TTMulti
             if (multicontroller.ActiveControllers.Contains(this))
             {
                 MouseEvent?.Invoke(this, m);
-            }
-            else if (Properties.Settings.Default.enableClickToChangeControllers)
-            {
-                switch ((Win32.WM)m.Msg)
-                {
-                    case Win32.WM.LBUTTONDOWN:
-                    case Win32.WM.RBUTTONDOWN:
-                    case Win32.WM.MBUTTONDOWN:
-                        ShouldActivate?.Invoke(this, EventArgs.Empty);
-                        break;
-                }
             }
         }
 

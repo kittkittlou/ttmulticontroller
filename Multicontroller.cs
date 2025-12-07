@@ -120,23 +120,10 @@ namespace TTMulti
                 switch (CurrentMode)
                 {
                     case MulticontrollerMode.Group:
-                    case MulticontrollerMode.MirrorGroup:
                         return ControllerGroups[CurrentGroupIndex].AllControllers;
-                    case MulticontrollerMode.Pair:
-                        if (CurrentControllerPair != null)
-                        {
-                            return CurrentControllerPair.AllControllers;
-                        }
-                        break;
                     case MulticontrollerMode.AllGroup:
                     case MulticontrollerMode.MirrorAll:
                         return AllControllers;
-                    case MulticontrollerMode.MirrorIndividual:
-                        if (CurrentIndividualController != null)
-                        {
-                            return new[] { CurrentIndividualController };
-                        }
-                        break;
                     case MulticontrollerMode.Focused:
                         // In focused mode, return all windows (movement filtering happens in ProcessKeyboardInput)
                         return AllControllersWithWindows;
@@ -234,17 +221,6 @@ namespace TTMulti
                 if (CurrentMode == MulticontrollerMode.AllGroup)
                 {
                     return ControllerGroups.SelectMany(g => g.LeftControllers);
-                }
-                else if (CurrentMode == MulticontrollerMode.Pair)
-                {
-                    if (CurrentControllerPair != null)
-                    {
-                        return new[] { CurrentControllerPair?.LeftController };
-                    } 
-                    else
-                    {
-                        return new ToontownController[] { };
-                    }
                 }
                 else
                 {
@@ -641,18 +617,9 @@ namespace TTMulti
                 switch (CurrentMode)
                 {
                     case MulticontrollerMode.Group:
-                    case MulticontrollerMode.MirrorGroup:
                         ControllerGroup group = ControllerGroups.First(g => g.AllControllers.Contains(controller));
 
                         CurrentGroupIndex = ControllerGroups.IndexOf(group);
-                        break;
-                    case MulticontrollerMode.Pair:
-                        ControllerPair pair = AllControllerPairs.First(p => p.AllControllers.Contains(controller));
-
-                        CurrentPairIndex = AllControllerPairsWithWindows.ToList().IndexOf(pair);
-                        break;
-                    case MulticontrollerMode.MirrorIndividual:
-                        CurrentIndividualControllerIndex = AllControllersWithWindows.ToList().IndexOf(controller);
                         break;
                 }
             }
@@ -759,11 +726,6 @@ namespace TTMulti
                             availableModesToCycle.Add(MulticontrollerMode.AllGroup);
                         }
 
-                        if (Properties.Settings.Default.mirrorGroupModeCycleWithModeHotkey)
-                        {
-                            availableModesToCycle.Add(MulticontrollerMode.MirrorGroup);
-                        }
-
                         int currentModeIndex = availableModesToCycle.IndexOf(CurrentMode);
 
                         if (currentModeIndex >= 0)
@@ -794,24 +756,6 @@ namespace TTMulti
             else if (keysPressed == (Keys)Properties.Settings.Default.controlAllGroupsKeyCode)
             {
                 CurrentMode = MulticontrollerMode.AllGroup;
-            }
-            else if (keysPressed == (Keys)Properties.Settings.Default.mirrorGroupModeKeyCode)
-            {
-                CurrentMode = MulticontrollerMode.MirrorGroup;
-            }
-            else if (keysPressed == (Keys)Properties.Settings.Default.pairModeKeyCode)
-            {
-                if (msg == Win32.WM.KEYDOWN && IsActive && AllControllerPairsWithWindows.Count() > 0)
-                {
-                    if (CurrentMode == MulticontrollerMode.Pair)
-                    {
-                        CurrentPairIndex = (CurrentPairIndex + 1) % AllControllerPairsWithWindows.Count();
-                    }
-                    else
-                    {
-                        CurrentMode = MulticontrollerMode.Pair;
-                    }
-                }
             }
             else if (keysPressed == (Keys)Properties.Settings.Default.replicateMouseKeyCode
                 && Properties.Settings.Default.replicateMouseKeyCode != 0)
@@ -903,21 +847,7 @@ namespace TTMulti
                     CurrentMode = MulticontrollerMode.AllGroup;
                 }
             }
-            else if (keysPressed == (Keys)Properties.Settings.Default.individualControlKeyCode)
-            {
-                if (msg == Win32.WM.KEYDOWN && IsActive && AllControllersWithWindows.Count() > 0)
-                {
-                    if (CurrentMode == MulticontrollerMode.MirrorIndividual)
-                    {
-                        CurrentIndividualControllerIndex = (CurrentIndividualControllerIndex + 1) % AllControllersWithWindows.Count();
-                    }
-                    else
-                    {
-                        CurrentMode = MulticontrollerMode.MirrorIndividual;
-                    }
-                }
-            }
-            else if ((CurrentMode == MulticontrollerMode.Group || CurrentMode == MulticontrollerMode.MirrorGroup)
+            else if (CurrentMode == MulticontrollerMode.Group
                 && ControllerGroups.Count > 1
                 && (keysPressed >= Keys.D0 && keysPressed <= Keys.D9
                     || keysPressed >= Keys.NumPad0 && keysPressed <= Keys.NumPad9))
@@ -1150,8 +1080,7 @@ namespace TTMulti
                 }
 
                 if (CurrentMode == MulticontrollerMode.Group 
-                    || CurrentMode == MulticontrollerMode.AllGroup 
-                    || CurrentMode == MulticontrollerMode.Pair)
+                    || CurrentMode == MulticontrollerMode.AllGroup)
                 {
                     if (leftKeys.ContainsKey(keysPressed) && !rightKeys.ContainsKey(keysPressed))
                     {
@@ -1173,8 +1102,6 @@ namespace TTMulti
                 }
                 
                 if (CurrentMode == MulticontrollerMode.MirrorAll
-                    || CurrentMode == MulticontrollerMode.MirrorGroup
-                    || CurrentMode == MulticontrollerMode.MirrorIndividual
                     || CurrentMode == MulticontrollerMode.Focused)  // Focused mode acts like mirror for non-directional keys
                 {
                     affectedControllers.ToList().ForEach(c => c.PostMessage(msg, wParam, lParam));
