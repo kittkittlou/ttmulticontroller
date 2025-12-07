@@ -484,16 +484,22 @@ namespace TTMulti
 
         private void UpdateSwitchingModeDisplay()
         {
-            var controllersWithWindows = AllControllersWithWindows.ToList();
+            // Calculate switching numbers based on group and type (Left/Right)
+            // All controllers with the same group and type get the same number, regardless of pair
+            // Numbering: Group 1 Left = 1, Group 1 Right = 2, Group 2 Left = 3, Group 2 Right = 4, etc.
             
-            for (int i = 0; i < controllersWithWindows.Count; i++)
+            // Apply switching numbers to all controllers with windows
+            foreach (var controller in AllControllersWithWindows)
             {
-                var controller = controllersWithWindows[i];
                 var borderWnd = GetBorderWindow(controller);
                 if (borderWnd != null)
                 {
                     borderWnd.SwitchingMode = true;
-                    borderWnd.SwitchingNumber = i + 1;
+                    
+                    // Calculate switching number: (GroupNumber - 1) * 2 + (Left = 1, Right = 2)
+                    int switchingNumber = (controller.GroupNumber - 1) * 2 + (controller.Type == ControllerType.Left ? 1 : 2);
+                    borderWnd.SwitchingNumber = switchingNumber;
+                    
                     borderWnd.SwitchingSelected = (controller == _firstSelectedController || controller == _secondSelectedController || _switchedControllers.Contains(controller));
                 }
             }
@@ -1231,54 +1237,57 @@ namespace TTMulti
             if (newWindows.Count == 0)
                 return;
 
-            // First, find all empty controller slots (controllers without windows)
-            var emptyControllers = AllControllers.Where(c => !c.HasWindow).ToList();
-
-            // Assign new windows to empty slots first, then create new groups if needed
+            // Assign windows to controllers in order: Group 1 Left, Group 1 Right, Group 2 Left, Group 2 Right, etc.
+            // Only use the first pair (PairNumber == 1) in each group
             int newWindowIndex = 0;
             
-            // Fill empty slots first
-            foreach (var emptyController in emptyControllers)
+            // Iterate through all groups in order
+            foreach (var group in ControllerGroups.OrderBy(g => g.GroupNumber))
             {
+                // Only use the first pair in each group (PairNumber == 1)
+                var firstPair = group.ControllerPairs.FirstOrDefault(p => p.PairNumber == 1);
+                if (firstPair == null)
+                {
+                    // If no first pair exists, create one
+                    firstPair = group.AddPair();
+                }
+
+                // Try to assign to Left controller first
+                if (!firstPair.LeftController.HasWindow && newWindowIndex < newWindows.Count)
+                {
+                    firstPair.LeftController.WindowHandle = newWindows[newWindowIndex];
+                    newWindowIndex++;
+                }
+
+                // Then try to assign to Right controller
+                if (!firstPair.RightController.HasWindow && newWindowIndex < newWindows.Count)
+                {
+                    firstPair.RightController.WindowHandle = newWindows[newWindowIndex];
+                    newWindowIndex++;
+                }
+
+                // If we've assigned all windows, stop
                 if (newWindowIndex >= newWindows.Count)
                     break;
-                
-                emptyController.WindowHandle = newWindows[newWindowIndex];
-                newWindowIndex++;
             }
 
             // If there are still new windows to assign, create new groups and assign them
             while (newWindowIndex < newWindows.Count)
             {
-                // Calculate which group this window belongs to (every 2 windows = 1 group)
-                // Count all currently assigned windows to determine the next group
-                int totalAssignedCount = AllControllersWithWindows.Count();
-                int groupIndex = totalAssignedCount / 2;
-                
-                // Ensure we have enough groups
-                while (groupIndex >= ControllerGroups.Count)
-                {
-                    AddControllerGroup();
-                }
+                // Create a new group
+                var newGroup = AddControllerGroup();
+                var firstPair = newGroup.ControllerPairs[0]; // New groups always have at least one pair
 
-                var group = ControllerGroups[groupIndex];
-
-                // Ensure we have at least one pair in this group
-                if (group.ControllerPairs.Count == 0)
-                {
-                    group.AddPair();
-                }
-
-                // Determine if this is left (even index) or right (odd index)
-                bool isLeft = (totalAssignedCount % 2) == 0;
-                int pairIndex = 0; // Always use first pair in each group
-
-                var pair = group.ControllerPairs[pairIndex];
-                var controller = isLeft ? pair.LeftController : pair.RightController;
-
-                // Assign the window
-                controller.WindowHandle = newWindows[newWindowIndex];
+                // Assign to Left controller
+                firstPair.LeftController.WindowHandle = newWindows[newWindowIndex];
                 newWindowIndex++;
+
+                // If there are more windows, assign to Right controller
+                if (newWindowIndex < newWindows.Count)
+                {
+                    firstPair.RightController.WindowHandle = newWindows[newWindowIndex];
+                    newWindowIndex++;
+                }
             }
 
             // Force update all border positions after assignment
