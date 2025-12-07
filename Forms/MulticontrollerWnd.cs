@@ -176,6 +176,17 @@ namespace TTMulti.Forms
                 case Win32.WM.SYSCOMMAND:
                     ret = controller.ProcessInput(m.Msg, m.WParam, m.LParam);
                     break;
+                case Win32.WM.LBUTTONDOWN:
+                case Win32.WM.LBUTTONUP:
+                case Win32.WM.RBUTTONDOWN:
+                case Win32.WM.RBUTTONUP:
+                case Win32.WM.MBUTTONDOWN:
+                case Win32.WM.MBUTTONUP:
+                case Win32.WM.MOUSEMOVE:
+                case Win32.WM.MOUSEWHEEL:
+                    // Intercept mouse messages and process them (especially important for switching mode)
+                    ret = controller.ProcessInput(m.Msg, m.WParam, m.LParam);
+                    break;
                 case Win32.WM.HOTKEY:
                     // Check if this is a layout preset hotkey (IDs 3-6) or auto-find (ID 7)
                     int hotkeyId = m.WParam.ToInt32();

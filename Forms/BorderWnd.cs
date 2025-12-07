@@ -171,6 +171,7 @@ namespace TTMulti.Forms
         private bool _switchingMode = false;
         private int _switchingNumber = 0;
         private bool _switchingSelected = false;
+        private bool _switchingSwitched = false;
 
         /// <summary>
         /// Whether switching mode is active
@@ -205,7 +206,7 @@ namespace TTMulti.Forms
         }
 
         /// <summary>
-        /// Whether this window is selected in switching mode (pink highlight)
+        /// Whether this window is selected in switching mode (yellow highlight)
         /// </summary>
         internal bool SwitchingSelected
         {
@@ -215,6 +216,22 @@ namespace TTMulti.Forms
                 if (_switchingSelected != value)
                 {
                     _switchingSelected = value;
+                    this.Invalidate();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Whether this window has been switched in switching mode (orange highlight)
+        /// </summary>
+        internal bool SwitchingSwitched
+        {
+            get => _switchingSwitched;
+            set
+            {
+                if (_switchingSwitched != value)
+                {
+                    _switchingSwitched = value;
                     this.Invalidate();
                 }
             }
@@ -232,7 +249,19 @@ namespace TTMulti.Forms
             Color borderColor = BorderColor;
             if (SwitchingMode)
             {
-                borderColor = SwitchingSelected ? Colors.SwitchingSelected : Colors.SwitchingMode;
+                // Priority: Selected (Yellow) > Switched (Orange) > Normal (Red)
+                if (SwitchingSelected)
+                {
+                    borderColor = Colors.SwitchingSelected; // Yellow for selected windows
+                }
+                else if (SwitchingSwitched)
+                {
+                    borderColor = Colors.SwitchingSwitched; // Orange for switched windows
+                }
+                else
+                {
+                    borderColor = Colors.SwitchingMode; // Red for normal switching mode
+                }
             }
             else if (SwitchingSelected)
             {
@@ -259,7 +288,20 @@ namespace TTMulti.Forms
                     float x = (this.ClientRectangle.Width - textSize.Width) / 2;
                     float y = (this.ClientRectangle.Height - textSize.Height) / 2;
                     
-                    Brush textBrush = SwitchingSelected ? Brushes.Yellow : Brushes.Red;
+                    // Text color matches border color: Yellow for selected, Orange for switched, Red for normal
+                    Brush textBrush;
+                    if (SwitchingSelected)
+                    {
+                        textBrush = Brushes.Yellow;
+                    }
+                    else if (SwitchingSwitched)
+                    {
+                        textBrush = Brushes.Orange;
+                    }
+                    else
+                    {
+                        textBrush = Brushes.Red;
+                    }
                     e.Graphics.DrawString(numberText, switchingModeFont, textBrush, x, y);
                 }
             }

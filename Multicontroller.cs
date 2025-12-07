@@ -444,6 +444,11 @@ namespace TTMulti
         private ToontownController _secondSelectedController = null;
         private System.Windows.Forms.Timer _switchingModeTimer = null;
         private HashSet<ToontownController> _switchedControllers = new HashSet<ToontownController>();
+        
+        // Global mouse hook for blocking clicks in switching mode
+        private static IntPtr _mouseHookHandle = IntPtr.Zero;
+        private static Multicontroller _hookInstance = null;
+        private static Win32.HookProc _mouseHookProc = null;
 
         /// <summary>
         /// Whether switching mode is currently active
@@ -521,23 +526,26 @@ namespace TTMulti
                     int switchingNumber = (controller.GroupNumber - 1) * 2 + (controller.Type == ControllerType.Left ? 1 : 2);
                     borderWnd.SwitchingNumber = switchingNumber;
                     
-                    borderWnd.SwitchingSelected = (controller == _firstSelectedController || controller == _secondSelectedController || _switchedControllers.Contains(controller));
+                    // Selected windows (first or second selected) are Yellow
+                    bool isSelected = (controller == _firstSelectedController || controller == _secondSelectedController);
+                    // Switched windows (in _switchedControllers but not currently selected) are Orange
+                    bool isSwitched = _switchedControllers.Contains(controller) && !isSelected;
+                    
+                    borderWnd.SwitchingSelected = isSelected;
+                    borderWnd.SwitchingSwitched = isSwitched;
                 }
             }
         }
 
         private void ExitSwitchingMode()
         {
-            // If only one controller was selected (first selected but not second), disconnect it
-            if (_firstSelectedController != null && _secondSelectedController == null)
-            {
-                _firstSelectedController.WindowHandle = IntPtr.Zero;
-            }
-            
             _switchingMode = false;
             _switchingModeTimer.Stop();
             _firstSelectedController = null;
             _secondSelectedController = null;
+            
+            // Uninstall global mouse hook
+            UninstallMouseHook();
 
             // Reset all border windows, but keep SwitchingSelected true for switched controllers
             foreach (var controller in AllControllersWithWindows)
@@ -547,6 +555,7 @@ namespace TTMulti
                 {
                     borderWnd.SwitchingMode = false;
                     borderWnd.SwitchingNumber = 0;
+                    borderWnd.SwitchingSwitched = false;
                     // Keep SwitchingSelected true for controllers that were switched
                     if (!_switchedControllers.Contains(controller))
                     {
@@ -555,12 +564,25 @@ namespace TTMulti
                 }
             }
             
+            // Apply the last used layout preset when exiting switching mode
+            int lastUsedPreset = Properties.Settings.Default.lastUsedLayoutPreset;
+            if (lastUsedPreset < 1 || lastUsedPreset > 4)
+            {
+                lastUsedPreset = 1;
+            }
+            
+            var preset = LayoutPreset.LoadFromSettings(lastUsedPreset);
+            if (preset.Enabled)
+            {
+                ApplyLayoutPreset(preset, lastUsedPreset);
+            }
+            
             // Trigger refresh so border windows are hidden for inactive controllers (if not showing all borders)
             SettingChanged?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
-        /// Clear the list of switched controllers and reset their yellow highlighting
+        /// Clear the list of switched controllers and reset their highlighting
         /// </summary>
         internal void ClearSwitchedControllers()
         {
@@ -570,6 +592,7 @@ namespace TTMulti
                 if (borderWnd != null)
                 {
                     borderWnd.SwitchingSelected = false;
+                    borderWnd.SwitchingSwitched = false;
                 }
             }
             _switchedControllers.Clear();
@@ -964,6 +987,10 @@ namespace TTMulti
                         _firstSelectedController = null;
                         _secondSelectedController = null;
                         _switchingModeTimer.Start();
+                        
+                        // Install global mouse hook to block clicks during switching mode
+                        InstallMouseHook();
+                        
                         // Trigger refresh so all border windows are shown
                         SettingChanged?.Invoke(this, EventArgs.Empty);
                         UpdateSwitchingModeDisplay();
@@ -982,29 +1009,26 @@ namespace TTMulti
             }
             else if (_switchingMode && keysPressed == Keys.X)
             {
-                // Handle X key in switching mode (can be KEYDOWN or SYSKEYDOWN when Alt is held)
+                // Handle X key in switching mode - disconnect the controller from the window under cursor
                 if (msg == Win32.WM.KEYDOWN || msg == Win32.WM.SYSKEYDOWN)
                 {
                     var controllerUnderCursor = GetControllerUnderCursor();
-                    if (controllerUnderCursor != null)
+                    if (controllerUnderCursor != null && controllerUnderCursor.HasWindow)
                     {
-                        if (_firstSelectedController == null)
+                        // Disconnect the controller from its window
+                        controllerUnderCursor.WindowHandle = IntPtr.Zero;
+                        
+                        // Clear selection if this controller was selected
+                        if (_firstSelectedController == controllerUnderCursor)
                         {
-                            // Select first window
-                            _firstSelectedController = controllerUnderCursor;
-                            UpdateSwitchingModeDisplay();
-                        }
-                        else if (_secondSelectedController == null && controllerUnderCursor != _firstSelectedController)
-                        {
-                            // Select second window and switch
-                            _secondSelectedController = controllerUnderCursor;
-                            SwitchWindows(_firstSelectedController, _secondSelectedController);
-                            
-                            // Reset selection state but keep switching mode active (Alt is still held)
                             _firstSelectedController = null;
-                            _secondSelectedController = null;
-                            UpdateSwitchingModeDisplay();
                         }
+                        if (_secondSelectedController == controllerUnderCursor)
+                        {
+                            _secondSelectedController = null;
+                        }
+                        
+                        UpdateSwitchingModeDisplay();
                     }
                     return true;
                 }
@@ -1091,35 +1115,6 @@ namespace TTMulti
                         if (targetController != null)
                         {
                             targetController.WindowHandle = windowHandle;
-                            UpdateSwitchingModeDisplay();
-                        }
-                    }
-                    return true;
-                }
-            }
-            else if (_switchingMode && keysPressed == Keys.X)
-            {
-                // Handle X key in switching mode (can be KEYDOWN or SYSKEYDOWN when Alt is held)
-                if (msg == Win32.WM.KEYDOWN || msg == Win32.WM.SYSKEYDOWN)
-                {
-                    var controllerUnderCursor = GetControllerUnderCursor();
-                    if (controllerUnderCursor != null)
-                    {
-                        if (_firstSelectedController == null)
-                        {
-                            // Select first window
-                            _firstSelectedController = controllerUnderCursor;
-                            UpdateSwitchingModeDisplay();
-                        }
-                        else if (_secondSelectedController == null && controllerUnderCursor != _firstSelectedController)
-                        {
-                            // Select second window and switch
-                            _secondSelectedController = controllerUnderCursor;
-                            SwitchWindows(_firstSelectedController, _secondSelectedController);
-                            
-                            // Reset selection state but keep switching mode active (Alt is still held)
-                            _firstSelectedController = null;
-                            _secondSelectedController = null;
                             UpdateSwitchingModeDisplay();
                         }
                     }
@@ -1255,6 +1250,46 @@ namespace TTMulti
         /// <returns>True if the input was handled</returns>
         private bool ProcessMouseInput(Win32.WM msg, IntPtr wParam, IntPtr lParam, ToontownController sourceController)
         {
+            // Handle mouse clicks in switching mode for window selection/switching
+            if (_switchingMode && msg == Win32.WM.LBUTTONDOWN)
+            {
+                var controllerUnderCursor = GetControllerUnderCursor();
+                if (controllerUnderCursor != null)
+                {
+                    if (_firstSelectedController == null)
+                    {
+                        // Select first window
+                        _firstSelectedController = controllerUnderCursor;
+                        UpdateSwitchingModeDisplay();
+                    }
+                    else if (_secondSelectedController == null && controllerUnderCursor != _firstSelectedController)
+                    {
+                        // Select second window and switch
+                        _secondSelectedController = controllerUnderCursor;
+                        SwitchWindows(_firstSelectedController, _secondSelectedController);
+                        
+                        // Reset selection state but keep switching mode active (Alt is still held)
+                        _firstSelectedController = null;
+                        _secondSelectedController = null;
+                        UpdateSwitchingModeDisplay();
+                    }
+                    else if (controllerUnderCursor == _firstSelectedController)
+                    {
+                        // Clicking the same window again deselects it
+                        _firstSelectedController = null;
+                        UpdateSwitchingModeDisplay();
+                    }
+                }
+                // Consume the click so it doesn't get sent to the games
+                return true;
+            }
+            
+            // Block all mouse input in switching mode (don't send clicks to games)
+            if (_switchingMode)
+            {
+                return true;
+            }
+            
             // Mouse input processing removed - multiclick is now instant via hotkey
             return false;
         }
@@ -1631,6 +1666,112 @@ namespace TTMulti
             {
                 ApplyLayoutPreset(preset, lastUsedPreset);
             }
+        }
+        
+        /// <summary>
+        /// Install global low-level mouse hook to block clicks during switching mode
+        /// </summary>
+        private void InstallMouseHook()
+        {
+            if (_mouseHookHandle != IntPtr.Zero)
+                return; // Hook already installed
+            
+            _hookInstance = this;
+            if (_mouseHookProc == null)
+            {
+                _mouseHookProc = MouseHookProc;
+            }
+            
+            IntPtr hModule = Win32.GetModuleHandle(null);
+            _mouseHookHandle = Win32.SetWindowsHookEx(
+                Win32.WH_MOUSE_LL,
+                _mouseHookProc,
+                hModule,
+                0
+            );
+        }
+        
+        /// <summary>
+        /// Uninstall global low-level mouse hook
+        /// </summary>
+        private void UninstallMouseHook()
+        {
+            if (_mouseHookHandle != IntPtr.Zero)
+            {
+                Win32.UnhookWindowsHookEx(_mouseHookHandle);
+                _mouseHookHandle = IntPtr.Zero;
+            }
+            _hookInstance = null;
+        }
+        
+        /// <summary>
+        /// Low-level mouse hook procedure - blocks clicks during switching mode
+        /// </summary>
+        private static IntPtr MouseHookProc(int nCode, IntPtr wParam, IntPtr lParam)
+        {
+            // If nCode is less than zero, we must pass the message to CallNextHookEx
+            if (nCode < 0)
+            {
+                return Win32.CallNextHookEx(_mouseHookHandle, nCode, wParam, lParam);
+            }
+            
+            // Check if switching mode is active
+            if (_hookInstance != null && _hookInstance._switchingMode)
+            {
+                int msg = wParam.ToInt32();
+                
+                // Block mouse clicks (left, right, middle button down)
+                if (msg == (int)Win32.WM.LBUTTONDOWN || 
+                    msg == (int)Win32.WM.RBUTTONDOWN || 
+                    msg == (int)Win32.WM.MBUTTONDOWN)
+                {
+                    // Process left clicks for selection/switching
+                    if (msg == (int)Win32.WM.LBUTTONDOWN)
+                    {
+                        // Get mouse position from hook structure
+                        Win32.MSLLHOOKSTRUCT hookStruct = (Win32.MSLLHOOKSTRUCT)System.Runtime.InteropServices.Marshal.PtrToStructure(
+                            lParam, typeof(Win32.MSLLHOOKSTRUCT));
+                        
+                        // Manually process the click for selection/switching
+                        // We need to call ProcessMouseInput, but we need to convert the hook message to a window message
+                        // For now, we'll handle it directly here
+                        var controllerUnderCursor = _hookInstance.GetControllerUnderCursor();
+                        if (controllerUnderCursor != null)
+                        {
+                            if (_hookInstance._firstSelectedController == null)
+                            {
+                                // Select first window
+                                _hookInstance._firstSelectedController = controllerUnderCursor;
+                                _hookInstance.UpdateSwitchingModeDisplay();
+                            }
+                            else if (_hookInstance._secondSelectedController == null && 
+                                     controllerUnderCursor != _hookInstance._firstSelectedController)
+                            {
+                                // Select second window and switch
+                                _hookInstance._secondSelectedController = controllerUnderCursor;
+                                _hookInstance.SwitchWindows(_hookInstance._firstSelectedController, _hookInstance._secondSelectedController);
+                                
+                                // Reset selection state but keep switching mode active (Alt is still held)
+                                _hookInstance._firstSelectedController = null;
+                                _hookInstance._secondSelectedController = null;
+                                _hookInstance.UpdateSwitchingModeDisplay();
+                            }
+                            else if (controllerUnderCursor == _hookInstance._firstSelectedController)
+                            {
+                                // Clicking the same window again deselects it
+                                _hookInstance._firstSelectedController = null;
+                                _hookInstance.UpdateSwitchingModeDisplay();
+                            }
+                        }
+                    }
+                    
+                    // Block the click from reaching the game window
+                    return (IntPtr)1; // Return non-zero to block the message
+                }
+            }
+            
+            // Pass the message to the next hook
+            return Win32.CallNextHookEx(_mouseHookHandle, nCode, wParam, lParam);
         }
     }
 
