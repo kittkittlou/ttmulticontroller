@@ -298,7 +298,7 @@ namespace TTMulti
             bool isActiveController = multicontroller.ActiveControllers.Contains(this);
 
             bool showBorderWindow = multicontroller.IsActive && HasWindow
-                && (isActiveController || multicontroller.ShowAllBorders);
+                && (isActiveController || multicontroller.ShowAllBorders || multicontroller.IsSwitchingMode);
 
             bool showMouseOverlayWindow = false; // Feature removed
 

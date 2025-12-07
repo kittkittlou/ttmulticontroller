@@ -424,6 +424,11 @@ namespace TTMulti
         private System.Windows.Forms.Timer _switchingModeTimer = null;
         private HashSet<ToontownController> _switchedControllers = new HashSet<ToontownController>();
 
+        /// <summary>
+        /// Whether switching mode is currently active
+        /// </summary>
+        internal bool IsSwitchingMode => _switchingMode;
+
         internal Multicontroller()
         {
             UpdateOptions();
@@ -516,6 +521,9 @@ namespace TTMulti
                     }
                 }
             }
+            
+            // Trigger refresh so border windows are hidden for inactive controllers (if not showing all borders)
+            SettingChanged?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
@@ -883,6 +891,8 @@ namespace TTMulti
                         _firstSelectedController = null;
                         _secondSelectedController = null;
                         _switchingModeTimer.Start();
+                        // Trigger refresh so all border windows are shown
+                        SettingChanged?.Invoke(this, EventArgs.Empty);
                         UpdateSwitchingModeDisplay();
                         return true;
                     }
