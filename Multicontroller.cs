@@ -441,9 +441,20 @@ namespace TTMulti
 
         int lastMoveX, lastMoveY;
 
+        // Window switching mode state
+        private bool _switchingMode = false;
+        private ToontownController _firstSelectedController = null;
+        private ToontownController _secondSelectedController = null;
+        private System.Windows.Forms.Timer _switchingModeTimer = null;
+
         internal Multicontroller()
         {
             UpdateOptions();
+            
+            // Initialize switching mode timer for mouse tracking
+            _switchingModeTimer = new System.Windows.Forms.Timer();
+            _switchingModeTimer.Interval = 50; // Check every 50ms
+            _switchingModeTimer.Tick += SwitchingModeTimer_Tick;
         }
 
         internal void UpdateOptions()
@@ -475,6 +486,109 @@ namespace TTMulti
                     rightKeys[keyBindings[i].RightToonKey].Add(keyBindings[i].Key);
                 }
             }
+        }
+
+        private void SwitchingModeTimer_Tick(object sender, EventArgs e)
+        {
+            if (!_switchingMode)
+            {
+                _switchingModeTimer.Stop();
+                return;
+            }
+
+            // Update switching mode display for all controllers
+            UpdateSwitchingModeDisplay();
+        }
+
+        private void UpdateSwitchingModeDisplay()
+        {
+            var controllersWithWindows = AllControllersWithWindows.ToList();
+            
+            for (int i = 0; i < controllersWithWindows.Count; i++)
+            {
+                var controller = controllersWithWindows[i];
+                var borderWnd = GetBorderWindow(controller);
+                if (borderWnd != null)
+                {
+                    borderWnd.SwitchingMode = true;
+                    borderWnd.SwitchingNumber = i + 1;
+                    borderWnd.SwitchingSelected = (controller == _firstSelectedController || controller == _secondSelectedController);
+                }
+            }
+        }
+
+        private void ExitSwitchingMode()
+        {
+            _switchingMode = false;
+            _switchingModeTimer.Stop();
+            _firstSelectedController = null;
+            _secondSelectedController = null;
+
+            // Reset all border windows
+            foreach (var controller in AllControllersWithWindows)
+            {
+                var borderWnd = GetBorderWindow(controller);
+                if (borderWnd != null)
+                {
+                    borderWnd.SwitchingMode = false;
+                    borderWnd.SwitchingNumber = 0;
+                    borderWnd.SwitchingSelected = false;
+                }
+            }
+        }
+
+        private BorderWnd GetBorderWindow(ToontownController controller)
+        {
+            // Use reflection to access the private _borderWnd field
+            var field = typeof(ToontownController).GetField("_borderWnd", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            return field?.GetValue(controller) as BorderWnd;
+        }
+
+        private ToontownController GetControllerUnderCursor()
+        {
+            Point cursorPos;
+            if (!Win32.GetCursorPos(out cursorPos))
+                return null;
+
+            // Find which controller's window the cursor is over
+            foreach (var controller in AllControllersWithWindows)
+            {
+                Point clientAreaLocation = Win32.GetWindowClientAreaLocation(controller.WindowHandle);
+                Size clientAreaSize = controller.WindowSize;
+
+                if (cursorPos.X >= clientAreaLocation.X && cursorPos.X < clientAreaLocation.X + clientAreaSize.Width &&
+                    cursorPos.Y >= clientAreaLocation.Y && cursorPos.Y < clientAreaLocation.Y + clientAreaSize.Height)
+                {
+                    return controller;
+                }
+            }
+
+            return null;
+        }
+
+        private void SwitchWindows(ToontownController controller1, ToontownController controller2)
+        {
+            if (controller1 == null || controller2 == null || controller1 == controller2)
+                return;
+
+            // Get current window handles
+            IntPtr handle1 = controller1.WindowHandle;
+            IntPtr handle2 = controller2.WindowHandle;
+
+            if (handle1 == IntPtr.Zero || handle2 == IntPtr.Zero)
+                return;
+
+            // Only swap window handle assignments (group/pair assignments)
+            // Don't move or resize windows - let user apply layout presets manually if needed
+            controller1.WindowHandle = handle2;
+            controller2.WindowHandle = handle1;
+
+            // Update border positions after switching
+            System.Windows.Forms.Application.DoEvents();
+            System.Threading.Thread.Sleep(10);
+            controller1.UpdateBorderPosition();
+            controller2.UpdateBorderPosition();
         }
 
         internal ControllerGroup AddControllerGroup()
@@ -547,6 +661,8 @@ namespace TTMulti
             {
                 case Win32.WM.KEYDOWN:
                 case Win32.WM.KEYUP:
+                case Win32.WM.SYSKEYDOWN:
+                case Win32.WM.SYSKEYUP:
                     isKeyboardInput = true;
                     keysPressed = (Keys)wParam;
                     break;
@@ -800,6 +916,61 @@ namespace TTMulti
                     CurrentGroupIndex = index;
                 }
             }
+            else if (keysPressed == Keys.Menu) // Alt key
+            {
+                // Handle Alt key for switching mode
+                if (msg == Win32.WM.SYSKEYDOWN || msg == Win32.WM.KEYDOWN)
+                {
+                    if (!_switchingMode && IsActive && AllControllersWithWindows.Any())
+                    {
+                        // Enter switching mode
+                        _switchingMode = true;
+                        _firstSelectedController = null;
+                        _secondSelectedController = null;
+                        _switchingModeTimer.Start();
+                        UpdateSwitchingModeDisplay();
+                        return true;
+                    }
+                }
+                else if (msg == Win32.WM.SYSKEYUP || msg == Win32.WM.KEYUP)
+                {
+                    if (_switchingMode)
+                    {
+                        // Exit switching mode
+                        ExitSwitchingMode();
+                        return true;
+                    }
+                }
+            }
+            else if (_switchingMode && keysPressed == Keys.X)
+            {
+                // Handle X key in switching mode (can be KEYDOWN or SYSKEYDOWN when Alt is held)
+                if (msg == Win32.WM.KEYDOWN || msg == Win32.WM.SYSKEYDOWN)
+                {
+                    var controllerUnderCursor = GetControllerUnderCursor();
+                    if (controllerUnderCursor != null)
+                    {
+                        if (_firstSelectedController == null)
+                        {
+                            // Select first window
+                            _firstSelectedController = controllerUnderCursor;
+                            UpdateSwitchingModeDisplay();
+                        }
+                        else if (_secondSelectedController == null && controllerUnderCursor != _firstSelectedController)
+                        {
+                            // Select second window and switch
+                            _secondSelectedController = controllerUnderCursor;
+                            SwitchWindows(_firstSelectedController, _secondSelectedController);
+                            
+                            // Reset selection state but keep switching mode active (Alt is still held)
+                            _firstSelectedController = null;
+                            _secondSelectedController = null;
+                            UpdateSwitchingModeDisplay();
+                        }
+                    }
+                    return true;
+                }
+            }
             else if (keysPressed == (Keys)Properties.Settings.Default.zeroPowerThrowKeyCode 
                 && Properties.Settings.Default.zeroPowerThrowKeyCode != 0)
             {
@@ -918,6 +1089,12 @@ namespace TTMulti
         /// <returns>True if the input was handled</returns>
         private bool ProcessKeyboardInput(Win32.WM msg, IntPtr wParam, IntPtr lParam)
         {
+            // Block normal input processing when in switching mode
+            if (_switchingMode)
+            {
+                return true; // Consume all input in switching mode
+            }
+
             if (IsActive)
             {
                 Keys keysPressed = (Keys)wParam;

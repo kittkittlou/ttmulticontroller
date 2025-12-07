@@ -320,32 +320,37 @@ namespace TTMulti
                 // TODO: why is this needed?
                 _borderWnd.WindowState = FormWindowState.Normal;
 
-                _borderWnd.ShowGroupNumber = multicontroller.IsActive
-                    && (multicontroller.ShowAllBorders || multicontroller.ControllerGroups.Count > 1);
+                // Check if switching mode is active (handled by Multicontroller)
+                // If not in switching mode, set normal border colors
+                if (!_borderWnd.SwitchingMode)
+                {
+                    _borderWnd.ShowGroupNumber = multicontroller.IsActive
+                        && (multicontroller.ShowAllBorders || multicontroller.ControllerGroups.Count > 1);
 
-                if (multicontroller.ShowAllBorders && multicontroller.IsActive)
-                {
-                    _borderWnd.BorderColor = Type == ControllerType.Left ? Colors.LeftGroup : Colors.RightGroup;
-                }
-                else if (multicontroller.IsActive)
-                {
-                    switch (multicontroller.CurrentMode)
+                    if (multicontroller.ShowAllBorders && multicontroller.IsActive)
                     {
-                        case MulticontrollerMode.Group:
-                        case MulticontrollerMode.Pair:
-                        case MulticontrollerMode.AllGroup:
-                            _borderWnd.BorderColor = Type == ControllerType.Left ? Colors.LeftGroup : Colors.RightGroup;
-                            break;
-                        case MulticontrollerMode.MirrorAll:
-                        case MulticontrollerMode.MirrorGroup:
-                            _borderWnd.BorderColor = Colors.AllGroups;
-                            break;
-                        case MulticontrollerMode.MirrorIndividual:
-                            _borderWnd.BorderColor = Colors.Individual;
-                            break;
-                        case MulticontrollerMode.Focused:
-                            _borderWnd.BorderColor = Colors.Focused;
-                            break;
+                        _borderWnd.BorderColor = Type == ControllerType.Left ? Colors.LeftGroup : Colors.RightGroup;
+                    }
+                    else if (multicontroller.IsActive)
+                    {
+                        switch (multicontroller.CurrentMode)
+                        {
+                            case MulticontrollerMode.Group:
+                            case MulticontrollerMode.Pair:
+                            case MulticontrollerMode.AllGroup:
+                                _borderWnd.BorderColor = Type == ControllerType.Left ? Colors.LeftGroup : Colors.RightGroup;
+                                break;
+                            case MulticontrollerMode.MirrorAll:
+                            case MulticontrollerMode.MirrorGroup:
+                                _borderWnd.BorderColor = Colors.AllGroups;
+                                break;
+                            case MulticontrollerMode.MirrorIndividual:
+                                _borderWnd.BorderColor = Colors.Individual;
+                                break;
+                            case MulticontrollerMode.Focused:
+                                _borderWnd.BorderColor = Colors.Focused;
+                                break;
+                        }
                     }
                 }
 

@@ -11,5 +11,7 @@ namespace TTMulti
         public static readonly Color Multiclick = Color.IndianRed;
         public static readonly Color ChromaKey = Color.Fuchsia;
         public static readonly Color Focused = Color.DarkBlue;
+        public static readonly Color SwitchingMode = Color.Red;
+        public static readonly Color SwitchingSelected = Color.Yellow;
     }
 }

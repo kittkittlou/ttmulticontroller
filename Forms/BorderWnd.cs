@@ -168,6 +168,58 @@ namespace TTMulti.Forms
         // Keep track of the last region where the cursor was draw so it can be invalidated quicker
         Rectangle fakeCursorRect;
 
+        private bool _switchingMode = false;
+        private int _switchingNumber = 0;
+        private bool _switchingSelected = false;
+
+        /// <summary>
+        /// Whether switching mode is active
+        /// </summary>
+        internal bool SwitchingMode
+        {
+            get => _switchingMode;
+            set
+            {
+                if (_switchingMode != value)
+                {
+                    _switchingMode = value;
+                    this.Invalidate();
+                }
+            }
+        }
+
+        /// <summary>
+        /// The number to display in switching mode (1, 2, 3, etc.)
+        /// </summary>
+        internal int SwitchingNumber
+        {
+            get => _switchingNumber;
+            set
+            {
+                if (_switchingNumber != value)
+                {
+                    _switchingNumber = value;
+                    this.Invalidate();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Whether this window is selected in switching mode (pink highlight)
+        /// </summary>
+        internal bool SwitchingSelected
+        {
+            get => _switchingSelected;
+            set
+            {
+                if (_switchingSelected != value)
+                {
+                    _switchingSelected = value;
+                    this.Invalidate();
+                }
+            }
+        }
+
         public BorderWnd()
         {
             InitializeComponent();
@@ -177,13 +229,36 @@ namespace TTMulti.Forms
         {
             base.OnPaint(e);
 
-            ControlPaint.DrawBorder(e.Graphics, this.ClientRectangle,
-                BorderColor, BorderWidth, ButtonBorderStyle.Solid,
-                BorderColor, BorderWidth, ButtonBorderStyle.Solid,
-                BorderColor, BorderWidth, ButtonBorderStyle.Solid,
-                BorderColor, BorderWidth, ButtonBorderStyle.Solid);
+            Color borderColor = BorderColor;
+            if (SwitchingMode)
+            {
+                borderColor = SwitchingSelected ? Colors.SwitchingSelected : Colors.SwitchingMode;
+            }
 
-            if (ShowGroupNumber)
+            ControlPaint.DrawBorder(e.Graphics, this.ClientRectangle,
+                borderColor, BorderWidth, ButtonBorderStyle.Solid,
+                borderColor, BorderWidth, ButtonBorderStyle.Solid,
+                borderColor, BorderWidth, ButtonBorderStyle.Solid,
+                borderColor, BorderWidth, ButtonBorderStyle.Solid);
+
+            if (SwitchingMode && SwitchingNumber > 0)
+            {
+                // Draw large number in center of window
+                // Font size is half of window height
+                float fontSize = this.ClientRectangle.Height / 2f;
+                using (Font switchingModeFont = new Font(FontFamily.GenericSansSerif, fontSize, FontStyle.Bold))
+                {
+                    e.Graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+                    string numberText = SwitchingNumber.ToString();
+                    SizeF textSize = e.Graphics.MeasureString(numberText, switchingModeFont);
+                    float x = (this.ClientRectangle.Width - textSize.Width) / 2;
+                    float y = (this.ClientRectangle.Height - textSize.Height) / 2;
+                    
+                    Brush textBrush = SwitchingSelected ? Brushes.Yellow : Brushes.Red;
+                    e.Graphics.DrawString(numberText, switchingModeFont, textBrush, x, y);
+                }
+            }
+            else if (ShowGroupNumber)
             {
                 e.Graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.SingleBitPerPixel;
                 e.Graphics.DrawString(GroupNumber.ToString(), textFont, Brushes.White, 12, 160);
