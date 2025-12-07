@@ -172,6 +172,7 @@ namespace TTMulti.Forms
         private int _switchingNumber = 0;
         private bool _switchingSelected = false;
         private bool _switchingSwitched = false;
+        private bool _switchingMarkedForRemoval = false;
 
         /// <summary>
         /// Whether switching mode is active
@@ -237,6 +238,22 @@ namespace TTMulti.Forms
             }
         }
 
+        /// <summary>
+        /// Whether this window is marked for removal in switching mode (black highlight)
+        /// </summary>
+        internal bool SwitchingMarkedForRemoval
+        {
+            get => _switchingMarkedForRemoval;
+            set
+            {
+                if (_switchingMarkedForRemoval != value)
+                {
+                    _switchingMarkedForRemoval = value;
+                    this.Invalidate();
+                }
+            }
+        }
+
         public BorderWnd()
         {
             InitializeComponent();
@@ -249,10 +266,14 @@ namespace TTMulti.Forms
             Color borderColor = BorderColor;
             if (SwitchingMode)
             {
-                // Priority: Selected (Yellow) > Switched (Orange) > Normal (Red)
+                // Priority: Selected (Yellow) > Marked for Removal (Black) > Switched (Orange) > Normal (Red)
                 if (SwitchingSelected)
                 {
                     borderColor = Colors.SwitchingSelected; // Yellow for selected windows
+                }
+                else if (SwitchingMarkedForRemoval)
+                {
+                    borderColor = Colors.SwitchingMarkedForRemoval; // Black for windows marked for removal
                 }
                 else if (SwitchingSwitched)
                 {
@@ -288,11 +309,15 @@ namespace TTMulti.Forms
                     float x = (this.ClientRectangle.Width - textSize.Width) / 2;
                     float y = (this.ClientRectangle.Height - textSize.Height) / 2;
                     
-                    // Text color matches border color: Yellow for selected, Orange for switched, Red for normal
+                    // Text color matches border color: Yellow for selected, Black for marked for removal, Orange for switched, Red for normal
                     Brush textBrush;
                     if (SwitchingSelected)
                     {
                         textBrush = Brushes.Yellow;
+                    }
+                    else if (SwitchingMarkedForRemoval)
+                    {
+                        textBrush = Brushes.Black;
                     }
                     else if (SwitchingSwitched)
                     {

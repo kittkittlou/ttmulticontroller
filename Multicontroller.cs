@@ -444,6 +444,7 @@ namespace TTMulti
         private ToontownController _secondSelectedController = null;
         private System.Windows.Forms.Timer _switchingModeTimer = null;
         private HashSet<ToontownController> _switchedControllers = new HashSet<ToontownController>();
+        private HashSet<ToontownController> _markedForRemoval = new HashSet<ToontownController>();
         
         // Global mouse hook for blocking clicks in switching mode
         private static IntPtr _mouseHookHandle = IntPtr.Zero;
@@ -530,9 +531,12 @@ namespace TTMulti
                     bool isSelected = (controller == _firstSelectedController || controller == _secondSelectedController);
                     // Switched windows (in _switchedControllers but not currently selected) are Orange
                     bool isSwitched = _switchedControllers.Contains(controller) && !isSelected;
+                    // Marked for removal windows are Black
+                    bool isMarkedForRemoval = _markedForRemoval.Contains(controller);
                     
                     borderWnd.SwitchingSelected = isSelected;
                     borderWnd.SwitchingSwitched = isSwitched;
+                    borderWnd.SwitchingMarkedForRemoval = isMarkedForRemoval;
                 }
             }
         }
@@ -547,6 +551,16 @@ namespace TTMulti
             // Uninstall global mouse hook
             UninstallMouseHook();
 
+            // Disconnect all controllers marked for removal
+            foreach (var controller in _markedForRemoval.ToList())
+            {
+                if (controller != null && controller.HasWindow)
+                {
+                    controller.WindowHandle = IntPtr.Zero;
+                }
+            }
+            _markedForRemoval.Clear();
+
             // Reset all border windows, but keep SwitchingSelected true for switched controllers
             foreach (var controller in AllControllersWithWindows)
             {
@@ -556,6 +570,7 @@ namespace TTMulti
                     borderWnd.SwitchingMode = false;
                     borderWnd.SwitchingNumber = 0;
                     borderWnd.SwitchingSwitched = false;
+                    borderWnd.SwitchingMarkedForRemoval = false;
                     // Keep SwitchingSelected true for controllers that were switched
                     if (!_switchedControllers.Contains(controller))
                     {
@@ -986,6 +1001,7 @@ namespace TTMulti
                         _switchingMode = true;
                         _firstSelectedController = null;
                         _secondSelectedController = null;
+                        _markedForRemoval.Clear(); // Clear removal marks when entering switching mode
                         _switchingModeTimer.Start();
                         
                         // Install global mouse hook to block clicks during switching mode
@@ -1009,23 +1025,32 @@ namespace TTMulti
             }
             else if (_switchingMode && keysPressed == Keys.X)
             {
-                // Handle X key in switching mode - disconnect the controller from the window under cursor
+                // Handle X key in switching mode - toggle removal mark on the controller under cursor
                 if (msg == Win32.WM.KEYDOWN || msg == Win32.WM.SYSKEYDOWN)
                 {
                     var controllerUnderCursor = GetControllerUnderCursor();
                     if (controllerUnderCursor != null && controllerUnderCursor.HasWindow)
                     {
-                        // Disconnect the controller from its window
-                        controllerUnderCursor.WindowHandle = IntPtr.Zero;
-                        
-                        // Clear selection if this controller was selected
-                        if (_firstSelectedController == controllerUnderCursor)
+                        // Toggle removal mark
+                        if (_markedForRemoval.Contains(controllerUnderCursor))
                         {
-                            _firstSelectedController = null;
+                            // Remove from removal list (unmark)
+                            _markedForRemoval.Remove(controllerUnderCursor);
                         }
-                        if (_secondSelectedController == controllerUnderCursor)
+                        else
                         {
-                            _secondSelectedController = null;
+                            // Add to removal list (mark for removal)
+                            _markedForRemoval.Add(controllerUnderCursor);
+                            
+                            // Clear selection if this controller was selected
+                            if (_firstSelectedController == controllerUnderCursor)
+                            {
+                                _firstSelectedController = null;
+                            }
+                            if (_secondSelectedController == controllerUnderCursor)
+                            {
+                                _secondSelectedController = null;
+                            }
                         }
                         
                         UpdateSwitchingModeDisplay();
@@ -1256,6 +1281,12 @@ namespace TTMulti
                 var controllerUnderCursor = GetControllerUnderCursor();
                 if (controllerUnderCursor != null)
                 {
+                    // If clicking on a window marked for removal, unmark it first
+                    if (_markedForRemoval.Contains(controllerUnderCursor))
+                    {
+                        _markedForRemoval.Remove(controllerUnderCursor);
+                    }
+                    
                     if (_firstSelectedController == null)
                     {
                         // Select first window
@@ -1277,6 +1308,11 @@ namespace TTMulti
                     {
                         // Clicking the same window again deselects it
                         _firstSelectedController = null;
+                        UpdateSwitchingModeDisplay();
+                    }
+                    else
+                    {
+                        // Just update display if we unmarked a removal
                         UpdateSwitchingModeDisplay();
                     }
                 }
@@ -1738,6 +1774,12 @@ namespace TTMulti
                         var controllerUnderCursor = _hookInstance.GetControllerUnderCursor();
                         if (controllerUnderCursor != null)
                         {
+                            // If clicking on a window marked for removal, unmark it first
+                            if (_hookInstance._markedForRemoval.Contains(controllerUnderCursor))
+                            {
+                                _hookInstance._markedForRemoval.Remove(controllerUnderCursor);
+                            }
+                            
                             if (_hookInstance._firstSelectedController == null)
                             {
                                 // Select first window
@@ -1760,6 +1802,11 @@ namespace TTMulti
                             {
                                 // Clicking the same window again deselects it
                                 _hookInstance._firstSelectedController = null;
+                                _hookInstance.UpdateSwitchingModeDisplay();
+                            }
+                            else
+                            {
+                                // Just update display if we unmarked a removal
                                 _hookInstance.UpdateSwitchingModeDisplay();
                             }
                         }
