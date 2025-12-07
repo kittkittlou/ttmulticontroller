@@ -24,6 +24,7 @@ namespace TTMulti.Forms
         // Layout preset controls
         private TabPage layoutTabPage;
         private List<LayoutPresetControls> presetControls = new List<LayoutPresetControls>();
+        private Button addPresetButton;
 
         // Helper class to hold controls for one region
         private class RegionControls
@@ -197,18 +198,29 @@ namespace TTMulti.Forms
         private TextBox autoFindExecutablesTextBox;
         private Label autoFindExecutablesLabel;
 
+        // Layout priority toggle controls
+        private GroupBox layoutPriorityGroupBox;
+        private KeyPicker layoutPriorityKeyPicker;
+        private CheckBox layoutPriorityAltCheckBox;
+        private CheckBox layoutPriorityCtrlCheckBox;
+        private CheckBox layoutPriorityShiftCheckBox;
+        private Label layoutPriorityLabel;
+
         private void OptionsDlg_Load(object sender, EventArgs e)
         {
             controlsPicker.KeyMappings = Properties.SerializedSettings.Default.Bindings;
 
-            // Load layout presets
-            for (int i = 0; i < 4; i++)
+            // Load layout presets (only load presets that exist in the UI)
+            for (int i = 0; i < presetControls.Count; i++)
             {
                 LoadLayoutPreset(i + 1);
             }
 
             CreateAutoFindTab();
             LoadAutoFindSettings();
+
+            CreateLayoutPriorityUI();
+            LoadLayoutPrioritySettings();
 
             loaded = true;
         }
@@ -317,6 +329,168 @@ namespace TTMulti.Forms
             autoFindTab.Controls.Add(autoFindGroupBox);
         }
 
+        private void CreateLayoutPriorityUI()
+        {
+            // Get the Hotkeys tab (tabPage3)
+            var hotkeysTab = tabControl1.TabPages.Cast<TabPage>().FirstOrDefault(t => t.Text == "Hotkeys");
+            if (hotkeysTab == null)
+                return;
+
+            // Find the tableLayoutPanel2 in the Hotkeys tab
+            var tableLayoutPanel = hotkeysTab.Controls.OfType<TableLayoutPanel>().FirstOrDefault();
+            if (tableLayoutPanel == null)
+                return;
+
+            // Check if layout priority UI already exists
+            if (layoutPriorityGroupBox != null && tableLayoutPanel.Controls.Contains(layoutPriorityGroupBox))
+                return;
+
+            // Wrap TableLayoutPanel in a scrollable Panel to enable scrolling
+            // Check if it's already wrapped
+            Panel scrollPanel = hotkeysTab.Controls.OfType<Panel>().FirstOrDefault(p => p.Controls.Contains(tableLayoutPanel));
+            
+            if (scrollPanel == null)
+            {
+                // Create a scrollable panel
+                scrollPanel = new Panel
+                {
+                    Dock = DockStyle.Fill,
+                    AutoScroll = true,
+                    Name = "hotkeysScrollPanel"
+                };
+                
+                // Remove TableLayoutPanel from tab
+                hotkeysTab.Controls.Remove(tableLayoutPanel);
+                
+                // Change TableLayoutPanel properties to allow growth
+                tableLayoutPanel.Dock = DockStyle.Top;
+                tableLayoutPanel.AutoSize = true;
+                tableLayoutPanel.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+                
+                // Add TableLayoutPanel to scroll panel
+                scrollPanel.Controls.Add(tableLayoutPanel);
+                
+                // Add scroll panel to tab
+                hotkeysTab.Controls.Add(scrollPanel);
+                scrollPanel.BringToFront();
+            }
+            else
+            {
+                // Ensure the scroll panel has AutoScroll enabled
+                scrollPanel.AutoScroll = true;
+            }
+
+            // Create group box for layout priority toggle
+            layoutPriorityGroupBox = new GroupBox
+            {
+                Text = "Layout Priority Toggle Hotkey:",
+                Dock = DockStyle.Top,
+                Padding = new Padding(4)
+            };
+
+            // Description label
+            layoutPriorityLabel = new Label
+            {
+                Text = "Toggles between two window ordering modes for layout placement:\n" +
+                       "• Pairs First: Group 1 Pair 1 Left, Group 1 Pair 1 Right, Group 1 Pair 2 Left, Group 1 Pair 2 Right\n" +
+                       "• Lefts First: Group 1 Pair 1 Left, Group 1 Pair 2 Left, Group 1 Pair 1 Right, Group 1 Pair 2 Right\n" +
+                       "When toggled, automatically reapplies the last used layout preset.",
+                Location = new Point(8, 20),
+                Size = new Size(712, 60),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            };
+            layoutPriorityGroupBox.Controls.Add(layoutPriorityLabel);
+
+            // Hotkey label
+            var hotkeyLabel = new Label
+            {
+                Text = "Hotkey:",
+                Location = new Point(8, 85),
+                Size = new Size(60, 20)
+            };
+            layoutPriorityGroupBox.Controls.Add(hotkeyLabel);
+
+            // Hotkey picker
+            layoutPriorityKeyPicker = new KeyPicker
+            {
+                Location = new Point(70, 83),
+                Size = new Size(120, 23)
+            };
+            layoutPriorityGroupBox.Controls.Add(layoutPriorityKeyPicker);
+
+            // Modifier checkboxes
+            layoutPriorityAltCheckBox = new CheckBox
+            {
+                Text = "Alt",
+                Location = new Point(200, 85),
+                Size = new Size(50, 20)
+            };
+            layoutPriorityGroupBox.Controls.Add(layoutPriorityAltCheckBox);
+
+            layoutPriorityCtrlCheckBox = new CheckBox
+            {
+                Text = "Ctrl",
+                Location = new Point(260, 85),
+                Size = new Size(50, 20)
+            };
+            layoutPriorityGroupBox.Controls.Add(layoutPriorityCtrlCheckBox);
+
+            layoutPriorityShiftCheckBox = new CheckBox
+            {
+                Text = "Shift",
+                Location = new Point(320, 85),
+                Size = new Size(60, 20)
+            };
+            layoutPriorityGroupBox.Controls.Add(layoutPriorityShiftCheckBox);
+
+            // Set the group box height
+            layoutPriorityGroupBox.Height = 120;
+
+            // Increase row count if needed and add to tableLayoutPanel at row 4 (index 3)
+            // Row 0: Mode/Activate Hotkey, Row 1: Multi-Click Hotkey, Row 2: Zero Power Throw Hotkey
+            if (tableLayoutPanel.RowCount < 5)
+            {
+                // Change the last row (index 3) from Absolute to AutoSize if it exists
+                if (tableLayoutPanel.RowCount == 4 && tableLayoutPanel.RowStyles.Count > 3)
+                {
+                    tableLayoutPanel.RowStyles[3] = new RowStyle(SizeType.AutoSize);
+                }
+                tableLayoutPanel.RowCount = 5;
+                // Add a new row style for the layout priority group box
+                tableLayoutPanel.RowStyles.Add(new RowStyle());
+            }
+            tableLayoutPanel.Controls.Add(layoutPriorityGroupBox, 0, 3);
+        }
+
+        private void LoadLayoutPrioritySettings()
+        {
+            if (layoutPriorityKeyPicker == null)
+                return;
+
+            layoutPriorityKeyPicker.ChosenKey = (Keys)Properties.Settings.Default.layoutPriorityToggleKeyCode;
+            layoutPriorityAltCheckBox.Checked = ((Win32.KeyModifiers)Properties.Settings.Default.layoutPriorityToggleKeyModifiers & Win32.KeyModifiers.Alt) != 0;
+            layoutPriorityCtrlCheckBox.Checked = ((Win32.KeyModifiers)Properties.Settings.Default.layoutPriorityToggleKeyModifiers & Win32.KeyModifiers.Control) != 0;
+            layoutPriorityShiftCheckBox.Checked = ((Win32.KeyModifiers)Properties.Settings.Default.layoutPriorityToggleKeyModifiers & Win32.KeyModifiers.Shift) != 0;
+        }
+
+        private void SaveLayoutPrioritySettings()
+        {
+            if (layoutPriorityKeyPicker == null)
+                return;
+
+            Properties.Settings.Default.layoutPriorityToggleKeyCode = (int)layoutPriorityKeyPicker.ChosenKey;
+
+            Win32.KeyModifiers modifiers = Win32.KeyModifiers.None;
+            if (layoutPriorityAltCheckBox.Checked)
+                modifiers |= Win32.KeyModifiers.Alt;
+            if (layoutPriorityCtrlCheckBox.Checked)
+                modifiers |= Win32.KeyModifiers.Control;
+            if (layoutPriorityShiftCheckBox.Checked)
+                modifiers |= Win32.KeyModifiers.Shift;
+
+            Properties.Settings.Default.layoutPriorityToggleKeyModifiers = (int)modifiers;
+        }
+
         private void LoadAutoFindSettings()
         {
             if (autoFindExecutablesTextBox == null)
@@ -383,14 +557,33 @@ namespace TTMulti.Forms
         {
             Properties.SerializedSettings.Default.Bindings = controlsPicker.KeyMappings;
 
-            // Save layout presets
-            for (int i = 0; i < 4; i++)
+            // Save layout presets (save all presets in the list)
+            for (int i = 0; i < presetControls.Count; i++)
             {
                 SaveLayoutPreset(i + 1);
+            }
+            
+            // Clear any remaining presets (2-4) if they exist but aren't in the list
+            for (int i = presetControls.Count + 1; i <= 4; i++)
+            {
+                // Reset unused presets to default disabled state
+                var emptyPreset = new LayoutPreset
+                {
+                    Enabled = false,
+                    Columns = 4,
+                    Rows = 2,
+                    Regions = new List<LayoutRegion> { new LayoutRegion() },
+                    HotkeyCode = 0,
+                    HotkeyModifiers = Win32.KeyModifiers.None
+                };
+                emptyPreset.SaveToSettings(i);
             }
 
             // Save auto-find settings
             SaveAutoFindSettings();
+
+            // Save layout priority settings
+            SaveLayoutPrioritySettings();
             
             Properties.Settings.Default.Save();
             DialogResult = DialogResult.OK;
@@ -501,15 +694,87 @@ namespace TTMulti.Forms
             // Add the tab to the existing tabControl1
             tabControl1.TabPages.Add(layoutTabPage);
 
-            // Create 4 preset configuration group boxes
+            // Check which presets exist in settings and create UI for all of them
+            // A preset "exists" if it has been saved (has non-default values or is enabled)
+            int presetCount = 1; // Always have at least 1 preset
+            for (int i = 2; i <= 4; i++)
+            {
+                var preset = LayoutPreset.LoadFromSettings(i);
+                // Consider a preset to exist if it's enabled, has a hotkey, or has non-default regions
+                if (preset.Enabled || preset.HotkeyCode != 0 || 
+                    (preset.Regions != null && preset.Regions.Count > 0 && 
+                     !(preset.Regions.Count == 1 && preset.Regions[0].X == 0 && preset.Regions[0].Y == 0 && 
+                       preset.Regions[0].Width == 1920 && preset.Regions[0].Height == 1080)))
+                {
+                    presetCount = i;
+                }
+            }
+
+            // Create UI for all existing presets
             int yPosition = 10;
-            for (int i = 1; i <= 4; i++)
+            for (int i = 1; i <= presetCount; i++)
             {
                 var presetControls = CreatePresetControls(i, yPosition);
                 this.presetControls.Add(presetControls);
                 layoutTabPage.Controls.Add(presetControls.GroupBox);
                 yPosition += presetControls.GroupBox.Height + 10;
             }
+
+            // Add "Add Preset" button
+            addPresetButton = new Button
+            {
+                Text = "Add Preset",
+                Location = new Point(10, yPosition),
+                Size = new Size(120, 30),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left
+            };
+            addPresetButton.Click += AddPresetButton_Click;
+            layoutTabPage.Controls.Add(addPresetButton);
+            
+            // Disable "Add Preset" button if we've reached the limit
+            if (presetControls.Count >= 4)
+            {
+                addPresetButton.Enabled = false;
+            }
+            
+            // Update remove button visibility (should be hidden with only 1 preset)
+            UpdatePresetRemoveButtons();
+        }
+
+        private void AddPresetButton_Click(object sender, EventArgs e)
+        {
+            // Maximum of 4 presets (due to LayoutPreset class limitation)
+            if (presetControls.Count >= 4)
+            {
+                MessageBox.Show("Maximum of 4 presets allowed.", "Limit Reached", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            int newPresetNumber = presetControls.Count + 1;
+            int yPosition = 10;
+            
+            // Calculate Y position based on existing presets
+            foreach (var preset in presetControls)
+            {
+                yPosition += preset.GroupBox.Height + 10;
+            }
+
+            var newPresetControls = CreatePresetControls(newPresetNumber, yPosition);
+            presetControls.Add(newPresetControls);
+            layoutTabPage.Controls.Add(newPresetControls.GroupBox);
+            
+            // Reposition "Add Preset" button
+            yPosition += newPresetControls.GroupBox.Height + 10;
+            addPresetButton.Location = new Point(10, yPosition);
+            
+            // Disable "Add Preset" button if we've reached the limit
+            if (presetControls.Count >= 4)
+            {
+                addPresetButton.Enabled = false;
+            }
+            
+            // Update remove button visibility
+            UpdatePresetRemoveButtons();
         }
 
         private LayoutPresetControls CreatePresetControls(int presetNumber, int yPos)
@@ -534,6 +799,18 @@ namespace TTMulti.Forms
                 Size = new Size(100, 20)
             };
             controls.GroupBox.Controls.Add(controls.EnabledCheckBox);
+
+            // Add "Remove Preset" button (only show if more than 1 preset)
+            // Position it next to the Enabled checkbox
+            Button removePresetButton = new Button
+            {
+                Text = "Remove",
+                Location = new Point(120, 20),
+                Size = new Size(70, 23),
+                Visible = false // Initially hidden, will be shown by UpdatePresetRemoveButtons
+            };
+            removePresetButton.Click += (s, e) => RemovePreset(controls);
+            controls.GroupBox.Controls.Add(removePresetButton);
 
             // Grid layout section
             Label lblGrid = new Label { Text = "Grid Layout:", Location = new Point(10, 50), Size = new Size(90, 20) };
@@ -575,7 +852,7 @@ namespace TTMulti.Forms
                 Location = new Point(10, 105),
                 Size = new Size(710, 60),
                 AutoScroll = true,
-                BorderStyle = BorderStyle.FixedSingle
+                BorderStyle = BorderStyle.None
             };
             controls.GroupBox.Controls.Add(controls.RegionsPanel);
 
@@ -625,6 +902,56 @@ namespace TTMulti.Forms
             controls.GroupBox.Controls.Add(controls.ShiftCheckBox);
 
             return controls;
+        }
+
+        private void RemovePreset(LayoutPresetControls presetToRemove)
+        {
+            // Keep at least 1 preset
+            if (presetControls.Count <= 1)
+            {
+                MessageBox.Show("At least one preset must remain.", "Cannot Remove", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            // Remove from list and UI
+            presetControls.Remove(presetToRemove);
+            layoutTabPage.Controls.Remove(presetToRemove.GroupBox);
+
+            // Reposition remaining presets and update their numbers
+            int yPosition = 10;
+            for (int i = 0; i < presetControls.Count; i++)
+            {
+                var preset = presetControls[i];
+                preset.PresetNumber = i + 1;
+                preset.GroupBox.Text = $"Preset {preset.PresetNumber}";
+                preset.GroupBox.Location = new Point(10, yPosition);
+                yPosition += preset.GroupBox.Height + 10;
+            }
+
+            // Reposition "Add Preset" button
+            addPresetButton.Location = new Point(10, yPosition);
+            addPresetButton.Enabled = true; // Re-enable if we removed one
+            
+            // Update remove button visibility for all remaining presets
+            UpdatePresetRemoveButtons();
+        }
+
+        private void UpdatePresetRemoveButtons()
+        {
+            // Show remove buttons only if there's more than 1 preset
+            bool showRemove = presetControls.Count > 1;
+            foreach (var preset in presetControls)
+            {
+                // Find the remove button in the GroupBox
+                foreach (Control control in preset.GroupBox.Controls)
+                {
+                    if (control is Button button && button.Text == "Remove")
+                    {
+                        button.Visible = showRemove;
+                        break;
+                    }
+                }
+            }
         }
 
         private void AddRegionControls(LayoutPresetControls presetControls, LayoutRegion region)

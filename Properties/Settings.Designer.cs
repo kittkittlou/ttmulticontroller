@@ -587,6 +587,42 @@ namespace TTMulti.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool layoutPriorityLeftsFirst {
+            get {
+                return ((bool)(this["layoutPriorityLeftsFirst"]));
+            }
+            set {
+                this["layoutPriorityLeftsFirst"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int layoutPriorityToggleKeyCode {
+            get {
+                return ((int)(this["layoutPriorityToggleKeyCode"]));
+            }
+            set {
+                this["layoutPriorityToggleKeyCode"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int layoutPriorityToggleKeyModifiers {
+            get {
+                return ((int)(this["layoutPriorityToggleKeyModifiers"]));
+            }
+            set {
+                this["layoutPriorityToggleKeyModifiers"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
         public bool layoutPreset1Enabled {
             get {
                 return ((bool)(this["layoutPreset1Enabled"]));

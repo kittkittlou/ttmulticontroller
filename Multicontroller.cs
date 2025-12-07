@@ -788,6 +788,16 @@ namespace TTMulti
             {
                 if (msg == Win32.WM.HOTKEY || msg == Win32.WM.KEYDOWN)
                 {
+                    // Check if any modifiers are currently pressed - if so, don't switch modes, let it pass through to games
+                    Keys currentModifiers = System.Windows.Forms.Control.ModifierKeys;
+                    bool hasModifiers = (currentModifiers & (Keys.Shift | Keys.Control | Keys.Alt)) != Keys.None;
+                    
+                    if (hasModifiers)
+                    {
+                        // Modifiers are pressed - don't switch modes, return false to let it pass through to ProcessKeyboardInput
+                        return false;
+                    }
+                    
                     if (IsActive)
                     {
                         // If in focused mode, exit it and return to Mirror mode
@@ -1537,6 +1547,29 @@ namespace TTMulti
             if (controllersWithWindows.Count == 0)
                 return;
 
+            // Order controllers based on priority mode
+            // Pairs first (default): Group -> Pair -> Type (Left before Right)
+            // Lefts first: Group -> Type (Left before Right) -> Pair
+            bool leftsFirst = Properties.Settings.Default.layoutPriorityLeftsFirst;
+            if (leftsFirst)
+            {
+                // Lefts first: Group 1 Pair 1 Left, Group 1 Pair 2 Left, Group 1 Pair 1 Right, Group 1 Pair 2 Right
+                controllersWithWindows = controllersWithWindows
+                    .OrderBy(c => c.GroupNumber)
+                    .ThenBy(c => c.Type) // Left (0) before Right (1)
+                    .ThenBy(c => c.PairNumber)
+                    .ToList();
+            }
+            else
+            {
+                // Pairs first (default): Group 1 Pair 1 Left, Group 1 Pair 1 Right, Group 1 Pair 2 Left, Group 1 Pair 2 Right
+                controllersWithWindows = controllersWithWindows
+                    .OrderBy(c => c.GroupNumber)
+                    .ThenBy(c => c.PairNumber)
+                    .ThenBy(c => c.Type) // Left (0) before Right (1)
+                    .ToList();
+            }
+
             // Calculate grid layout (window size and positions)
             var (windowSize, positions) = preset.CalculateGridLayout(controllersWithWindows.Count);
 
@@ -1573,6 +1606,30 @@ namespace TTMulti
             foreach (var controller in controllersWithWindows)
             {
                 controller.UpdateBorderPosition();
+            }
+        }
+
+        /// <summary>
+        /// Toggle layout priority mode and reapply the last used layout preset
+        /// </summary>
+        public void ToggleLayoutPriority()
+        {
+            // Toggle the priority mode
+            Properties.Settings.Default.layoutPriorityLeftsFirst = !Properties.Settings.Default.layoutPriorityLeftsFirst;
+            Properties.Settings.Default.Save();
+
+            // Get the last used preset number, defaulting to 1 if none has been used
+            int lastUsedPreset = Properties.Settings.Default.lastUsedLayoutPreset;
+            if (lastUsedPreset < 1 || lastUsedPreset > 4)
+            {
+                lastUsedPreset = 1;
+            }
+
+            // Load and reapply the last used preset with the new priority order
+            var preset = LayoutPreset.LoadFromSettings(lastUsedPreset);
+            if (preset.Enabled)
+            {
+                ApplyLayoutPreset(preset, lastUsedPreset);
             }
         }
     }

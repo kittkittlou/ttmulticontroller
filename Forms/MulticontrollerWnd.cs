@@ -179,9 +179,9 @@ namespace TTMulti.Forms
                 case Win32.WM.HOTKEY:
                     // Check if this is a layout preset hotkey (IDs 3-6) or auto-find (ID 7)
                     int hotkeyId = m.WParam.ToInt32();
-                    if (hotkeyId >= 3 && hotkeyId <= 6 || hotkeyId == 7)
+                    if (hotkeyId >= 3 && hotkeyId <= 6 || hotkeyId == 7 || hotkeyId == 8)
                     {
-                        // Let layout and auto-find hotkeys pass through to WndProc
+                        // Let layout, auto-find, and layout priority toggle hotkeys pass through to WndProc
                         ret = false;
                     }
                     else
@@ -224,11 +224,37 @@ namespace TTMulti.Forms
                         }
                         RegisterLayoutHotkeys();
                         RegisterAutoFindHotkey();
+                        RegisterLayoutPriorityHotkey();
+                    }
+                }
+                // Check if this is layout priority toggle hotkey (ID 8)
+                else if (hotkeyId == 8)
+                {
+                    controller.ToggleLayoutPriority();
+                }
+                else if (hotkeyId == 0)
+                {
+                    // Mode switching hotkey (ID 0)
+                    // Check if any modifiers are currently pressed - if so, don't switch modes, let it pass through to games
+                    Keys currentModifiers = Control.ModifierKeys;
+                    bool hasModifiers = (currentModifiers & (Keys.Shift | Keys.Control | Keys.Alt)) != Keys.None;
+                    
+                    if (hasModifiers)
+                    {
+                        // Modifiers are pressed - don't switch modes, let the key pass through to games
+                        // Convert HOTKEY message to KEYDOWN so it gets processed normally
+                        Keys keyCode = (Keys)Properties.Settings.Default.modeKeyCode;
+                        controller.ProcessInput((int)Win32.WM.KEYDOWN, (IntPtr)keyCode, IntPtr.Zero);
+                    }
+                    else
+                    {
+                        // No modifiers - handle as mode switch
+                        controller.ProcessInput(m.Msg, m.WParam, m.LParam);
                     }
                 }
                 else
-            {
-                controller.ProcessInput(m.Msg, m.WParam, m.LParam);
+                {
+                    controller.ProcessInput(m.Msg, m.WParam, m.LParam);
                 }
                 
                 CheckControllerErrors();
@@ -279,6 +305,7 @@ namespace TTMulti.Forms
             UnregisterHotkey();
             UnregisterLayoutHotkeys();
             UnregisterAutoFindHotkey();
+            UnregisterLayoutPriorityHotkey();
             
             // Re-register hotkeys if multicontroller is active or windows are active
             if (controller.IsActive || controller.AllControllersWithWindows.Any(c => c.IsWindowActive))
@@ -289,6 +316,7 @@ namespace TTMulti.Forms
                 }
                 RegisterLayoutHotkeys();
                 RegisterAutoFindHotkey();
+                RegisterLayoutPriorityHotkey();
             }
         }
 
@@ -312,6 +340,7 @@ namespace TTMulti.Forms
 
                 // Note: Auto-find hotkey (ID 7) is registered separately and always available
                 // Note: Layout hotkeys (IDs 3-6) are registered separately via RegisterLayoutHotkeys()
+                // Note: Layout priority toggle hotkey (ID 8) is registered separately via RegisterLayoutPriorityHotkey()
             }
 
             return hotkeyRegistered;
@@ -369,6 +398,28 @@ namespace TTMulti.Forms
         {
             // Unregister auto-find hotkey (ID 7)
             Win32.UnregisterHotKey(this.Handle, 7);
+        }
+
+        private void RegisterLayoutPriorityHotkey()
+        {
+            // Register layout priority toggle hotkey (ID 8) - only when multicontroller is active
+            if (Properties.Settings.Default.layoutPriorityToggleKeyCode != 0)
+            {
+                bool success = Win32.RegisterHotKey(this.Handle, 8, (Win32.KeyModifiers)Properties.Settings.Default.layoutPriorityToggleKeyModifiers, (Keys)Properties.Settings.Default.layoutPriorityToggleKeyCode);
+                if (!success)
+                {
+                    // Hotkey registration failed - might be already registered or invalid combination
+                    // Try unregistering first, then re-registering
+                    Win32.UnregisterHotKey(this.Handle, 8);
+                    Win32.RegisterHotKey(this.Handle, 8, (Win32.KeyModifiers)Properties.Settings.Default.layoutPriorityToggleKeyModifiers, (Keys)Properties.Settings.Default.layoutPriorityToggleKeyCode);
+                }
+            }
+        }
+
+        private void UnregisterLayoutPriorityHotkey()
+        {
+            // Unregister layout priority toggle hotkey (ID 8)
+            Win32.UnregisterHotKey(this.Handle, 8);
         }
 
         private void MulticontrollerWnd_Load(object sender, EventArgs e)
@@ -439,6 +490,7 @@ namespace TTMulti.Forms
                 controller.IsActive = true;
                 RegisterLayoutHotkeys();
                 RegisterAutoFindHotkey();
+                RegisterLayoutPriorityHotkey();
             }
         }
 
@@ -477,6 +529,7 @@ namespace TTMulti.Forms
                 // Multicontroller window is still active, ensure hotkeys are registered
                 RegisterLayoutHotkeys();
                 RegisterAutoFindHotkey();
+                RegisterLayoutPriorityHotkey();
             }
         }
 
@@ -487,6 +540,8 @@ namespace TTMulti.Forms
             RegisterLayoutHotkeys();
             // Register auto-find hotkey when a Toontown window is active
             RegisterAutoFindHotkey();
+            // Register layout priority toggle hotkey when a Toontown window is active
+            RegisterLayoutPriorityHotkey();
         }
 
         private void MainWnd_FormClosing(object sender, FormClosingEventArgs e)
@@ -513,6 +568,7 @@ namespace TTMulti.Forms
                 }
                 RegisterLayoutHotkeys();
                 RegisterAutoFindHotkey();
+                RegisterLayoutPriorityHotkey();
             }
         }
 
@@ -607,6 +663,8 @@ namespace TTMulti.Forms
             RegisterLayoutHotkeys();
             // Register auto-find hotkey when multicontroller window is active
             RegisterAutoFindHotkey();
+            // Register layout priority toggle hotkey when multicontroller window is active
+            RegisterLayoutPriorityHotkey();
         }
 
         private void MulticontrollerWnd_Deactivate(object sender, EventArgs e)
@@ -616,6 +674,8 @@ namespace TTMulti.Forms
             UnregisterLayoutHotkeys();
             // Unregister auto-find hotkey when multicontroller window is inactive
             UnregisterAutoFindHotkey();
+            // Unregister layout priority toggle hotkey when multicontroller window is inactive
+            UnregisterLayoutPriorityHotkey();
         }
     }
 }
