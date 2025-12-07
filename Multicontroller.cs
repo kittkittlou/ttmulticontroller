@@ -932,16 +932,12 @@ namespace TTMulti
                 // Handle Zero Power Throw Hotkey
                 if (msg == Win32.WM.KEYDOWN || msg == Win32.WM.HOTKEY)
                 {
-                    // For HOTKEY messages, we can't rely on KEYUP, so just execute without repeat prevention
-                    // For KEYDOWN messages (when multicontroller is active), use repeat prevention
-                    if (msg == Win32.WM.KEYDOWN)
+                    // Prevent key repeat - only trigger on initial press
+                    if (zeroPowerThrowKeyPressed)
                     {
-                        if (zeroPowerThrowKeyPressed)
-                        {
-                            return true; // Ignore repeated KEYDOWN
-                        }
-                        zeroPowerThrowKeyPressed = true;
+                        return true;
                     }
+                    zeroPowerThrowKeyPressed = true;
                     
                     // Find the Throw key from bindings
                     var keyBindings = Properties.SerializedSettings.Default.Bindings;
@@ -1016,7 +1012,7 @@ namespace TTMulti
                 }
                 else if (msg == Win32.WM.KEYUP)
                 {
-                    // Reset flag when key is released (only applies when multicontroller is active)
+                    // Reset flag when key is released
                     zeroPowerThrowKeyPressed = false;
                 }
             }
