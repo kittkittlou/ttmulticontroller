@@ -313,6 +313,9 @@ namespace TTMulti.Forms
             panel1.Visible = !Properties.Settings.Default.compactUI;
             controller.UpdateOptions();
             
+            // Apply dark mode title bars if enabled
+            ApplyDarkModeTitleBars();
+            
             // Unregister all hotkeys
             UnregisterHotkey();
             UnregisterLayoutHotkeys();
@@ -524,6 +527,31 @@ namespace TTMulti.Forms
 
             // Multicontroller could have loaded groups
             UpdateWindowStatus();
+
+            // Apply dark mode title bars if enabled
+            ApplyDarkModeTitleBars();
+        }
+
+        private void ApplyDarkModeTitleBars()
+        {
+            bool matchColors = Properties.Settings.Default.matchTitleBarToBorder;
+            
+            // Apply to multicontroller window (use a neutral dark color)
+            if (matchColors)
+            {
+                Color titleBarColor = Colors.Darken(Color.Gray, 0.3f);
+                Win32.SetTitleBarColor(this.Handle, titleBarColor);
+            }
+            // If disabled, don't set anything - let Windows use default behavior
+            
+            // Apply to all Toontown windows based on their border colors
+            foreach (var controller in controller.AllControllersWithWindows)
+            {
+                if (controller.HasWindow)
+                {
+                    controller.ApplyTitleBarColor();
+                }
+            }
         }
         
         private void MulticontrollerWnd_Shown(object sender, EventArgs e)

@@ -249,6 +249,9 @@ namespace TTMulti.Forms
         private Button switchingSwitchedColorButton;
         private Button switchingRemovedColorButton;
 
+        // Match title bar to border color control
+        private CheckBox matchTitleBarToBorderCheckBox;
+
         private void OptionsDlg_Load(object sender, EventArgs e)
         {
             controlsPicker.KeyMappings = Properties.SerializedSettings.Default.Bindings;
@@ -274,6 +277,9 @@ namespace TTMulti.Forms
 
             CreateColorsTab();
             LoadColorsSettings();
+
+            CreateDarkModeTitleBarsUI();
+            LoadDarkModeTitleBarsSettings();
             
             // Reorder tabs to match desired order:
             // 1. Multi-Mode Key Bindings (tabPage6)
@@ -798,7 +804,6 @@ namespace TTMulti.Forms
 
             int yPos = 25;
             int labelWidth = 250;
-            int buttonWidth = 100;
             int buttonHeight = 30;
             int spacing = 40;
 
@@ -1142,6 +1147,100 @@ namespace TTMulti.Forms
             Properties.Settings.Default.switchingRemovedColor = switchingRemovedColorButton.BackColor.ToArgb();
         }
 
+        private void CreateDarkModeTitleBarsUI()
+        {
+            // Get the Other tab (tabPage2)
+            var otherTab = tabControl1.TabPages.Cast<TabPage>().FirstOrDefault(t => t.Text == "Other");
+            if (otherTab == null)
+                return;
+
+            // Create a new group box for title bar color matching
+            var titleBarGroupBox = new GroupBox
+            {
+                Text = "Title Bar Appearance",
+                Dock = DockStyle.Top,
+                Padding = new Padding(10),
+                Height = 60
+            };
+
+            // Create checkbox
+            matchTitleBarToBorderCheckBox = new CheckBox
+            {
+                Text = "Match Title Bar Color to Border",
+                Location = new Point(10, 22),
+                Size = new Size(250, 20),
+                AutoSize = true
+            };
+            matchTitleBarToBorderCheckBox.CheckedChanged += (s, e) => ApplyTitleBarColorsToAllWindows();
+            titleBarGroupBox.Controls.Add(matchTitleBarToBorderCheckBox);
+
+            // Add description label
+            var descLabel = new Label
+            {
+                Text = "Title bar color matches the border color (slightly darker) for the multicontroller and all connected Toontown windows.",
+                Location = new Point(10, 45),
+                Size = new Size(700, 15),
+                AutoSize = false,
+                ForeColor = Color.Gray,
+                Font = new Font(SystemFonts.DefaultFont, FontStyle.Italic)
+            };
+            titleBarGroupBox.Controls.Add(descLabel);
+
+            // Insert at the top of the Other tab (before other group boxes)
+            otherTab.Controls.Add(titleBarGroupBox);
+            titleBarGroupBox.BringToFront();
+        }
+
+        private void LoadDarkModeTitleBarsSettings()
+        {
+            if (matchTitleBarToBorderCheckBox == null)
+                return;
+
+            matchTitleBarToBorderCheckBox.Checked = Properties.Settings.Default.matchTitleBarToBorder;
+        }
+
+        private void SaveDarkModeTitleBarsSettings()
+        {
+            if (matchTitleBarToBorderCheckBox == null)
+                return;
+
+            Properties.Settings.Default.matchTitleBarToBorder = matchTitleBarToBorderCheckBox.Checked;
+        }
+
+        private void ApplyTitleBarColorsToAllWindows()
+        {
+            if (matchTitleBarToBorderCheckBox == null)
+                return;
+
+            bool matchColors = matchTitleBarToBorderCheckBox.Checked;
+            
+            // Save the setting immediately
+            Properties.Settings.Default.matchTitleBarToBorder = matchColors;
+            Properties.Settings.Default.Save();
+
+            // Apply to multicontroller window (use a neutral dark color)
+            var mainWindow = Application.OpenForms.OfType<MulticontrollerWnd>().FirstOrDefault();
+            if (mainWindow != null && !mainWindow.IsDisposed)
+            {
+                if (matchColors)
+                {
+                    // Use a neutral dark gray for the main window
+                    Color titleBarColor = Colors.Darken(Color.Gray, 0.3f);
+                    Win32.SetTitleBarColor(mainWindow.Handle, titleBarColor);
+                }
+                // If disabled, don't set anything - let Windows use default behavior
+            }
+
+            // Apply to all Toontown windows based on their border colors
+            var multicontroller = Multicontroller.Instance;
+            foreach (var controller in multicontroller.AllControllersWithWindows)
+            {
+                if (controller.HasWindow)
+                {
+                    controller.ApplyTitleBarColor();
+                }
+            }
+        }
 
         private void LoadAutoFindSettings()
         {
@@ -1245,6 +1344,7 @@ namespace TTMulti.Forms
             
             // Save colors settings
             SaveColorsSettings();
+            SaveDarkModeTitleBarsSettings();
             
             Properties.Settings.Default.Save();
             DialogResult = DialogResult.OK;
