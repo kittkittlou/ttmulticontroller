@@ -242,5 +242,26 @@
     <Setting Name="switchingModeEnabled" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
+    <Setting Name="mirrorModeBorderColor" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">-10223615</Value>
+    </Setting>
+    <Setting Name="multiModeLeftBorderColor" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">-3323085</Value>
+    </Setting>
+    <Setting Name="multiModeRightBorderColor" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">-16744448</Value>
+    </Setting>
+    <Setting Name="switchingModeColor" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">-65536</Value>
+    </Setting>
+    <Setting Name="switchingSelectedColor" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">-256</Value>
+    </Setting>
+    <Setting Name="switchingSwitchedColor" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">-23296</Value>
+    </Setting>
+    <Setting Name="switchingRemovedColor" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">-16777216</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

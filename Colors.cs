@@ -4,16 +4,16 @@ namespace TTMulti
 {
     public static class Colors
     {
-        public static readonly Color LeftGroup = Color.LimeGreen;
-        public static readonly Color RightGroup = Color.DarkGreen;
-        public static readonly Color AllGroups = Color.Violet;
+        public static Color LeftGroup => Color.FromArgb(Properties.Settings.Default.multiModeLeftBorderColor);
+        public static Color RightGroup => Color.FromArgb(Properties.Settings.Default.multiModeRightBorderColor);
+        public static Color AllGroups => Color.FromArgb(Properties.Settings.Default.mirrorModeBorderColor);
         public static readonly Color Individual = Color.Lime;
         public static readonly Color Multiclick = Color.IndianRed;
         public static readonly Color ChromaKey = Color.Fuchsia;
         public static readonly Color Focused = Color.DarkBlue;
-        public static readonly Color SwitchingMode = Color.Red;
-        public static readonly Color SwitchingSelected = Color.Yellow;
-        public static readonly Color SwitchingSwitched = Color.Orange;
-        public static readonly Color SwitchingMarkedForRemoval = Color.Black;
+        public static Color SwitchingMode => Color.FromArgb(Properties.Settings.Default.switchingModeColor);
+        public static Color SwitchingSelected => Color.FromArgb(Properties.Settings.Default.switchingSelectedColor);
+        public static Color SwitchingSwitched => Color.FromArgb(Properties.Settings.Default.switchingSwitchedColor);
+        public static Color SwitchingMarkedForRemoval => Color.FromArgb(Properties.Settings.Default.switchingRemovedColor);
     }
 }

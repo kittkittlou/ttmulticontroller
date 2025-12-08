@@ -979,5 +979,89 @@ namespace TTMulti.Properties {
                 this["switchingModeEnabled"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("-10223615")]
+        public int mirrorModeBorderColor {
+            get {
+                return ((int)(this["mirrorModeBorderColor"]));
+            }
+            set {
+                this["mirrorModeBorderColor"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("-3323085")]
+        public int multiModeLeftBorderColor {
+            get {
+                return ((int)(this["multiModeLeftBorderColor"]));
+            }
+            set {
+                this["multiModeLeftBorderColor"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("-16744448")]
+        public int multiModeRightBorderColor {
+            get {
+                return ((int)(this["multiModeRightBorderColor"]));
+            }
+            set {
+                this["multiModeRightBorderColor"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("-65536")]
+        public int switchingModeColor {
+            get {
+                return ((int)(this["switchingModeColor"]));
+            }
+            set {
+                this["switchingModeColor"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("-256")]
+        public int switchingSelectedColor {
+            get {
+                return ((int)(this["switchingSelectedColor"]));
+            }
+            set {
+                this["switchingSelectedColor"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("-23296")]
+        public int switchingSwitchedColor {
+            get {
+                return ((int)(this["switchingSwitchedColor"]));
+            }
+            set {
+                this["switchingSwitchedColor"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("-16777216")]
+        public int switchingRemovedColor {
+            get {
+                return ((int)(this["switchingRemovedColor"]));
+            }
+            set {
+                this["switchingRemovedColor"] = value;
+            }
+        }
     }
 }

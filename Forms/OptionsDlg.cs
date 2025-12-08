@@ -239,6 +239,16 @@ namespace TTMulti.Forms
         private KeyPicker switchingModeRemoveKeyPicker;
         private Label switchingModeDescriptionLabel;
 
+        // Colors controls
+        private TabPage colorsTabPage;
+        private Button mirrorModeBorderColorButton;
+        private Button multiModeLeftBorderColorButton;
+        private Button multiModeRightBorderColorButton;
+        private Button switchingModeColorButton;
+        private Button switchingSelectedColorButton;
+        private Button switchingSwitchedColorButton;
+        private Button switchingRemovedColorButton;
+
         private void OptionsDlg_Load(object sender, EventArgs e)
         {
             controlsPicker.KeyMappings = Properties.SerializedSettings.Default.Bindings;
@@ -261,6 +271,9 @@ namespace TTMulti.Forms
             
             CreateAutoFindTab();
             LoadAutoFindSettings();
+
+            CreateColorsTab();
+            LoadColorsSettings();
             
             // Reorder tabs to match desired order:
             // 1. Multi-Mode Key Bindings (tabPage6)
@@ -274,6 +287,7 @@ namespace TTMulti.Forms
             var tabPage1 = tabControl1.TabPages.Cast<TabPage>().FirstOrDefault(t => t.Text == "Controller Modes");
             var layoutTab = tabControl1.TabPages.Cast<TabPage>().FirstOrDefault(t => t.Text == "Layout Presets");
             var autoFindTab = tabControl1.TabPages.Cast<TabPage>().FirstOrDefault(t => t.Text == "Auto-Find");
+            var colorsTab = tabControl1.TabPages.Cast<TabPage>().FirstOrDefault(t => t.Text == "Colors");
             var tabPage2 = tabControl1.TabPages.Cast<TabPage>().FirstOrDefault(t => t.Text == "Other");
             
             // Remove all tabs and re-add in correct order
@@ -283,6 +297,7 @@ namespace TTMulti.Forms
             if (tabPage1 != null) tabControl1.TabPages.Add(tabPage1);
             if (layoutTab != null) tabControl1.TabPages.Add(layoutTab);
             if (autoFindTab != null) tabControl1.TabPages.Add(autoFindTab);
+            if (colorsTab != null) tabControl1.TabPages.Add(colorsTab);
             if (tabPage2 != null) tabControl1.TabPages.Add(tabPage2);
 
             loaded = true;
@@ -761,6 +776,373 @@ namespace TTMulti.Forms
             Properties.Settings.Default.switchingModeRemoveKeyCode = (int)switchingModeRemoveKeyPicker.ChosenKey;
         }
 
+        private void CreateColorsTab()
+        {
+            // Create a new tab page for Colors
+            colorsTabPage = new TabPage("Colors");
+            colorsTabPage.AutoScroll = true;
+            colorsTabPage.Padding = new Padding(10);
+            
+            // Add the tab to the tab control
+            tabControl1.TabPages.Add(colorsTabPage);
+
+            // Create main group box
+            var colorsGroupBox = new GroupBox
+            {
+                Text = "Border Colors",
+                Location = new Point(10, 10),
+                Size = new Size(720, 400),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            };
+            colorsTabPage.Controls.Add(colorsGroupBox);
+
+            int yPos = 25;
+            int labelWidth = 250;
+            int buttonWidth = 100;
+            int buttonHeight = 30;
+            int spacing = 40;
+
+            // Mirror Mode Border Color
+            var mirrorLabel = new Label
+            {
+                Text = "Mirror Mode Border:",
+                Location = new Point(10, yPos),
+                Size = new Size(labelWidth, 20)
+            };
+            colorsGroupBox.Controls.Add(mirrorLabel);
+
+            // Color swatch button
+            mirrorModeBorderColorButton = new Button
+            {
+                Text = "",
+                Location = new Point(labelWidth + 20, yPos - 2),
+                Size = new Size(40, buttonHeight),
+                BackColor = Color.FromArgb(Properties.Settings.Default.mirrorModeBorderColor),
+                FlatStyle = FlatStyle.Flat,
+                UseVisualStyleBackColor = false
+            };
+            mirrorModeBorderColorButton.FlatAppearance.BorderSize = 1;
+            mirrorModeBorderColorButton.FlatAppearance.BorderColor = Color.Gray;
+            colorsGroupBox.Controls.Add(mirrorModeBorderColorButton);
+
+            // Change button
+            var mirrorChangeBtn = new Button
+            {
+                Text = "Change",
+                Location = new Point(labelWidth + 70, yPos - 2),
+                Size = new Size(70, buttonHeight)
+            };
+            mirrorChangeBtn.Click += (s, e) => ShowColorDialog(mirrorModeBorderColorButton, Color.Violet);
+            colorsGroupBox.Controls.Add(mirrorChangeBtn);
+
+            // Reset button
+            var mirrorResetBtn = new Button
+            {
+                Text = "Reset",
+                Location = new Point(labelWidth + 150, yPos - 2),
+                Size = new Size(70, buttonHeight)
+            };
+            mirrorResetBtn.Click += (s, e) => { mirrorModeBorderColorButton.BackColor = Color.Violet; };
+            colorsGroupBox.Controls.Add(mirrorResetBtn);
+
+            yPos += spacing;
+
+            // Multi Mode Left Border Color
+            var multiLeftLabel = new Label
+            {
+                Text = "Multi Mode (Left) Border:",
+                Location = new Point(10, yPos),
+                Size = new Size(labelWidth, 20)
+            };
+            colorsGroupBox.Controls.Add(multiLeftLabel);
+
+            multiModeLeftBorderColorButton = new Button
+            {
+                Text = "",
+                Location = new Point(labelWidth + 20, yPos - 2),
+                Size = new Size(40, buttonHeight),
+                BackColor = Color.FromArgb(Properties.Settings.Default.multiModeLeftBorderColor),
+                FlatStyle = FlatStyle.Flat,
+                UseVisualStyleBackColor = false
+            };
+            multiModeLeftBorderColorButton.FlatAppearance.BorderSize = 1;
+            multiModeLeftBorderColorButton.FlatAppearance.BorderColor = Color.Gray;
+            colorsGroupBox.Controls.Add(multiModeLeftBorderColorButton);
+
+            var multiLeftChangeBtn = new Button
+            {
+                Text = "Change",
+                Location = new Point(labelWidth + 70, yPos - 2),
+                Size = new Size(70, buttonHeight)
+            };
+            multiLeftChangeBtn.Click += (s, e) => ShowColorDialog(multiModeLeftBorderColorButton, Color.LimeGreen);
+            colorsGroupBox.Controls.Add(multiLeftChangeBtn);
+
+            var multiLeftResetBtn = new Button
+            {
+                Text = "Reset",
+                Location = new Point(labelWidth + 150, yPos - 2),
+                Size = new Size(70, buttonHeight)
+            };
+            multiLeftResetBtn.Click += (s, e) => { multiModeLeftBorderColorButton.BackColor = Color.LimeGreen; };
+            colorsGroupBox.Controls.Add(multiLeftResetBtn);
+
+            yPos += spacing;
+
+            // Multi Mode Right Border Color
+            var multiRightLabel = new Label
+            {
+                Text = "Multi Mode (Right) Border:",
+                Location = new Point(10, yPos),
+                Size = new Size(labelWidth, 20)
+            };
+            colorsGroupBox.Controls.Add(multiRightLabel);
+
+            multiModeRightBorderColorButton = new Button
+            {
+                Text = "",
+                Location = new Point(labelWidth + 20, yPos - 2),
+                Size = new Size(40, buttonHeight),
+                BackColor = Color.FromArgb(Properties.Settings.Default.multiModeRightBorderColor),
+                FlatStyle = FlatStyle.Flat,
+                UseVisualStyleBackColor = false
+            };
+            multiModeRightBorderColorButton.FlatAppearance.BorderSize = 1;
+            multiModeRightBorderColorButton.FlatAppearance.BorderColor = Color.Gray;
+            colorsGroupBox.Controls.Add(multiModeRightBorderColorButton);
+
+            var multiRightChangeBtn = new Button
+            {
+                Text = "Change",
+                Location = new Point(labelWidth + 70, yPos - 2),
+                Size = new Size(70, buttonHeight)
+            };
+            multiRightChangeBtn.Click += (s, e) => ShowColorDialog(multiModeRightBorderColorButton, Color.DarkGreen);
+            colorsGroupBox.Controls.Add(multiRightChangeBtn);
+
+            var multiRightResetBtn = new Button
+            {
+                Text = "Reset",
+                Location = new Point(labelWidth + 150, yPos - 2),
+                Size = new Size(70, buttonHeight)
+            };
+            multiRightResetBtn.Click += (s, e) => { multiModeRightBorderColorButton.BackColor = Color.DarkGreen; };
+            colorsGroupBox.Controls.Add(multiRightResetBtn);
+
+            yPos += spacing;
+
+            // Switching Mode Color
+            var switchingLabel = new Label
+            {
+                Text = "Switching Mode:",
+                Location = new Point(10, yPos),
+                Size = new Size(labelWidth, 20)
+            };
+            colorsGroupBox.Controls.Add(switchingLabel);
+
+            switchingModeColorButton = new Button
+            {
+                Text = "",
+                Location = new Point(labelWidth + 20, yPos - 2),
+                Size = new Size(40, buttonHeight),
+                BackColor = Color.FromArgb(Properties.Settings.Default.switchingModeColor),
+                FlatStyle = FlatStyle.Flat,
+                UseVisualStyleBackColor = false
+            };
+            switchingModeColorButton.FlatAppearance.BorderSize = 1;
+            switchingModeColorButton.FlatAppearance.BorderColor = Color.Gray;
+            colorsGroupBox.Controls.Add(switchingModeColorButton);
+
+            var switchingChangeBtn = new Button
+            {
+                Text = "Change",
+                Location = new Point(labelWidth + 70, yPos - 2),
+                Size = new Size(70, buttonHeight)
+            };
+            switchingChangeBtn.Click += (s, e) => ShowColorDialog(switchingModeColorButton, Color.Red);
+            colorsGroupBox.Controls.Add(switchingChangeBtn);
+
+            var switchingResetBtn = new Button
+            {
+                Text = "Reset",
+                Location = new Point(labelWidth + 150, yPos - 2),
+                Size = new Size(70, buttonHeight)
+            };
+            switchingResetBtn.Click += (s, e) => { switchingModeColorButton.BackColor = Color.Red; };
+            colorsGroupBox.Controls.Add(switchingResetBtn);
+
+            yPos += spacing;
+
+            // Selected Switch Color
+            var selectedLabel = new Label
+            {
+                Text = "Selected Switch:",
+                Location = new Point(10, yPos),
+                Size = new Size(labelWidth, 20)
+            };
+            colorsGroupBox.Controls.Add(selectedLabel);
+
+            switchingSelectedColorButton = new Button
+            {
+                Text = "",
+                Location = new Point(labelWidth + 20, yPos - 2),
+                Size = new Size(40, buttonHeight),
+                BackColor = Color.FromArgb(Properties.Settings.Default.switchingSelectedColor),
+                FlatStyle = FlatStyle.Flat,
+                UseVisualStyleBackColor = false
+            };
+            switchingSelectedColorButton.FlatAppearance.BorderSize = 1;
+            switchingSelectedColorButton.FlatAppearance.BorderColor = Color.Gray;
+            colorsGroupBox.Controls.Add(switchingSelectedColorButton);
+
+            var selectedChangeBtn = new Button
+            {
+                Text = "Change",
+                Location = new Point(labelWidth + 70, yPos - 2),
+                Size = new Size(70, buttonHeight)
+            };
+            selectedChangeBtn.Click += (s, e) => ShowColorDialog(switchingSelectedColorButton, Color.Yellow);
+            colorsGroupBox.Controls.Add(selectedChangeBtn);
+
+            var selectedResetBtn = new Button
+            {
+                Text = "Reset",
+                Location = new Point(labelWidth + 150, yPos - 2),
+                Size = new Size(70, buttonHeight)
+            };
+            selectedResetBtn.Click += (s, e) => { switchingSelectedColorButton.BackColor = Color.Yellow; };
+            colorsGroupBox.Controls.Add(selectedResetBtn);
+
+            yPos += spacing;
+
+            // Pending Switch Color
+            var pendingLabel = new Label
+            {
+                Text = "Pending Switch:",
+                Location = new Point(10, yPos),
+                Size = new Size(labelWidth, 20)
+            };
+            colorsGroupBox.Controls.Add(pendingLabel);
+
+            switchingSwitchedColorButton = new Button
+            {
+                Text = "",
+                Location = new Point(labelWidth + 20, yPos - 2),
+                Size = new Size(40, buttonHeight),
+                BackColor = Color.FromArgb(Properties.Settings.Default.switchingSwitchedColor),
+                FlatStyle = FlatStyle.Flat,
+                UseVisualStyleBackColor = false
+            };
+            switchingSwitchedColorButton.FlatAppearance.BorderSize = 1;
+            switchingSwitchedColorButton.FlatAppearance.BorderColor = Color.Gray;
+            colorsGroupBox.Controls.Add(switchingSwitchedColorButton);
+
+            var pendingChangeBtn = new Button
+            {
+                Text = "Change",
+                Location = new Point(labelWidth + 70, yPos - 2),
+                Size = new Size(70, buttonHeight)
+            };
+            pendingChangeBtn.Click += (s, e) => ShowColorDialog(switchingSwitchedColorButton, Color.Orange);
+            colorsGroupBox.Controls.Add(pendingChangeBtn);
+
+            var pendingResetBtn = new Button
+            {
+                Text = "Reset",
+                Location = new Point(labelWidth + 150, yPos - 2),
+                Size = new Size(70, buttonHeight)
+            };
+            pendingResetBtn.Click += (s, e) => { switchingSwitchedColorButton.BackColor = Color.Orange; };
+            colorsGroupBox.Controls.Add(pendingResetBtn);
+
+            yPos += spacing;
+
+            // Removed Color
+            var removedLabel = new Label
+            {
+                Text = "Removed:",
+                Location = new Point(10, yPos),
+                Size = new Size(labelWidth, 20)
+            };
+            colorsGroupBox.Controls.Add(removedLabel);
+
+            switchingRemovedColorButton = new Button
+            {
+                Text = "",
+                Location = new Point(labelWidth + 20, yPos - 2),
+                Size = new Size(40, buttonHeight),
+                BackColor = Color.FromArgb(Properties.Settings.Default.switchingRemovedColor),
+                FlatStyle = FlatStyle.Flat,
+                UseVisualStyleBackColor = false
+            };
+            switchingRemovedColorButton.FlatAppearance.BorderSize = 1;
+            switchingRemovedColorButton.FlatAppearance.BorderColor = Color.Gray;
+            colorsGroupBox.Controls.Add(switchingRemovedColorButton);
+
+            var removedChangeBtn = new Button
+            {
+                Text = "Change",
+                Location = new Point(labelWidth + 70, yPos - 2),
+                Size = new Size(70, buttonHeight)
+            };
+            removedChangeBtn.Click += (s, e) => ShowColorDialog(switchingRemovedColorButton, Color.Black);
+            colorsGroupBox.Controls.Add(removedChangeBtn);
+
+            var removedResetBtn = new Button
+            {
+                Text = "Reset",
+                Location = new Point(labelWidth + 150, yPos - 2),
+                Size = new Size(70, buttonHeight)
+            };
+            removedResetBtn.Click += (s, e) => { switchingRemovedColorButton.BackColor = Color.Black; };
+            colorsGroupBox.Controls.Add(removedResetBtn);
+        }
+
+        private void ShowColorDialog(Button colorButton, Color defaultColor)
+        {
+            using (ColorDialog colorDialog = new ColorDialog())
+            {
+                colorDialog.Color = colorButton.BackColor;
+                colorDialog.FullOpen = true; // Show full color picker including custom colors
+                colorDialog.AllowFullOpen = true;
+                colorDialog.SolidColorOnly = false;
+                
+                if (colorDialog.ShowDialog() == DialogResult.OK)
+                {
+                    colorButton.BackColor = colorDialog.Color;
+                }
+            }
+        }
+
+        private void LoadColorsSettings()
+        {
+            if (mirrorModeBorderColorButton == null)
+                return;
+
+            mirrorModeBorderColorButton.BackColor = Color.FromArgb(Properties.Settings.Default.mirrorModeBorderColor);
+            multiModeLeftBorderColorButton.BackColor = Color.FromArgb(Properties.Settings.Default.multiModeLeftBorderColor);
+            multiModeRightBorderColorButton.BackColor = Color.FromArgb(Properties.Settings.Default.multiModeRightBorderColor);
+            switchingModeColorButton.BackColor = Color.FromArgb(Properties.Settings.Default.switchingModeColor);
+            switchingSelectedColorButton.BackColor = Color.FromArgb(Properties.Settings.Default.switchingSelectedColor);
+            switchingSwitchedColorButton.BackColor = Color.FromArgb(Properties.Settings.Default.switchingSwitchedColor);
+            switchingRemovedColorButton.BackColor = Color.FromArgb(Properties.Settings.Default.switchingRemovedColor);
+        }
+
+        private void SaveColorsSettings()
+        {
+            if (mirrorModeBorderColorButton == null)
+                return;
+
+            Properties.Settings.Default.mirrorModeBorderColor = mirrorModeBorderColorButton.BackColor.ToArgb();
+            Properties.Settings.Default.multiModeLeftBorderColor = multiModeLeftBorderColorButton.BackColor.ToArgb();
+            Properties.Settings.Default.multiModeRightBorderColor = multiModeRightBorderColorButton.BackColor.ToArgb();
+            Properties.Settings.Default.switchingModeColor = switchingModeColorButton.BackColor.ToArgb();
+            Properties.Settings.Default.switchingSelectedColor = switchingSelectedColorButton.BackColor.ToArgb();
+            Properties.Settings.Default.switchingSwitchedColor = switchingSwitchedColorButton.BackColor.ToArgb();
+            Properties.Settings.Default.switchingRemovedColor = switchingRemovedColorButton.BackColor.ToArgb();
+        }
+
+
         private void LoadAutoFindSettings()
         {
             if (autoFindExecutablesTextBox == null)
@@ -860,6 +1242,9 @@ namespace TTMulti.Forms
             
             // Save switching mode settings
             SaveSwitchingModeSettings();
+            
+            // Save colors settings
+            SaveColorsSettings();
             
             Properties.Settings.Default.Save();
             DialogResult = DialogResult.OK;
