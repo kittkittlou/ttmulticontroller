@@ -249,14 +249,41 @@ namespace TTMulti.Forms
                 LoadLayoutPreset(i + 1);
             }
 
-            CreateAutoFindTab();
-            LoadAutoFindSettings();
-
             CreateLayoutPriorityUI();
             LoadLayoutPrioritySettings();
 
-            CreateSwitchingModeTab();
+            CreateSwitchingModeUI();
             LoadSwitchingModeSettings();
+
+            // Create tabs in order: Layout Presets, Auto-Find
+            // Note: Multi-Mode Key Bindings, Hotkeys, Controller Modes, and Other are already in Designer
+            CreateLayoutPresetsUI();
+            
+            CreateAutoFindTab();
+            LoadAutoFindSettings();
+            
+            // Reorder tabs to match desired order:
+            // 1. Multi-Mode Key Bindings (tabPage6)
+            // 2. Hotkeys (tabPage3)
+            // 3. Controller Modes (tabPage1)
+            // 4. Layout Presets (layoutTabPage)
+            // 5. Auto-Find (autoFindTab)
+            // 6. Other (tabPage2)
+            var tabPage6 = tabControl1.TabPages.Cast<TabPage>().FirstOrDefault(t => t.Text == "Multi-Mode Key Bindings");
+            var tabPage3 = tabControl1.TabPages.Cast<TabPage>().FirstOrDefault(t => t.Text == "Hotkeys");
+            var tabPage1 = tabControl1.TabPages.Cast<TabPage>().FirstOrDefault(t => t.Text == "Controller Modes");
+            var layoutTab = tabControl1.TabPages.Cast<TabPage>().FirstOrDefault(t => t.Text == "Layout Presets");
+            var autoFindTab = tabControl1.TabPages.Cast<TabPage>().FirstOrDefault(t => t.Text == "Auto-Find");
+            var tabPage2 = tabControl1.TabPages.Cast<TabPage>().FirstOrDefault(t => t.Text == "Other");
+            
+            // Remove all tabs and re-add in correct order
+            tabControl1.TabPages.Clear();
+            if (tabPage6 != null) tabControl1.TabPages.Add(tabPage6);
+            if (tabPage3 != null) tabControl1.TabPages.Add(tabPage3);
+            if (tabPage1 != null) tabControl1.TabPages.Add(tabPage1);
+            if (layoutTab != null) tabControl1.TabPages.Add(layoutTab);
+            if (autoFindTab != null) tabControl1.TabPages.Add(autoFindTab);
+            if (tabPage2 != null) tabControl1.TabPages.Add(tabPage2);
 
             loaded = true;
         }
@@ -527,23 +554,20 @@ namespace TTMulti.Forms
             Properties.Settings.Default.layoutPriorityToggleKeyModifiers = (int)modifiers;
         }
 
-        private void CreateSwitchingModeTab()
+        private void CreateSwitchingModeUI()
         {
-            // Create a new tab page for Switching Mode
-            var switchingModeTab = new TabPage("Switching Mode");
-            switchingModeTab.AutoScroll = true;
-            switchingModeTab.Padding = new Padding(10);
-            
-            // Add the tab to the tab control
-            tabControl1.TabPages.Add(switchingModeTab);
+            // Get the Controller Modes tab (tabPage1)
+            var controllerModesTab = tabControl1.TabPages.Cast<TabPage>().FirstOrDefault(t => t.Text == "Controller Modes");
+            if (controllerModesTab == null)
+                return;
 
             // Create main group box
             switchingModeGroupBox = new GroupBox
             {
                 Text = "Switching Mode Configuration",
-                Location = new Point(10, 10),
-                Size = new Size(720, 280),
-                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+                Dock = DockStyle.Bottom,
+                Padding = new Padding(10),
+                Height = 300
             };
 
             // Enabled checkbox
@@ -653,8 +677,8 @@ namespace TTMulti.Forms
             };
             switchingModeGroupBox.Controls.Add(switchingModeRemoveKeyPicker);
 
-            // Add group box to tab
-            switchingModeTab.Controls.Add(switchingModeGroupBox);
+            // Add group box to Controller Modes tab
+            controllerModesTab.Controls.Add(switchingModeGroupBox);
         }
 
         private void SwitchingModeSwitchComboBox_SelectedIndexChanged(object sender, EventArgs e)

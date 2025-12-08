@@ -61,12 +61,12 @@ namespace TTMulti.Forms
             this.label4 = new System.Windows.Forms.Label();
             this.multiclickLabel = new System.Windows.Forms.Label();
             this.zeroPowerThrowLabel = new System.Windows.Forms.Label();
-            this.tabPage5 = new System.Windows.Forms.TabPage();
-            this.label2 = new System.Windows.Forms.Label();
             this.tabPage2 = new System.Windows.Forms.TabPage();
             this.label7 = new System.Windows.Forms.Label();
+            this.groupBox7 = new System.Windows.Forms.GroupBox();
             this.groupBox6 = new System.Windows.Forms.GroupBox();
             this.groupBox5 = new System.Windows.Forms.GroupBox();
+            this.label2 = new System.Windows.Forms.Label();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.allGroupModeCycleToggleChk = new System.Windows.Forms.CheckBox();
             this.mirrorModeCycleToggleChk = new System.Windows.Forms.CheckBox();
@@ -98,8 +98,8 @@ namespace TTMulti.Forms
             this.groupBox1.SuspendLayout();
             this.multiclickGroupBox.SuspendLayout();
             this.zeroPowerThrowGroupBox.SuspendLayout();
-            this.tabPage5.SuspendLayout();
             this.tabPage2.SuspendLayout();
+            this.groupBox7.SuspendLayout();
             this.groupBox6.SuspendLayout();
             this.groupBox5.SuspendLayout();
             this.SuspendLayout();
@@ -159,9 +159,8 @@ namespace TTMulti.Forms
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tabControl1.Controls.Add(this.tabPage6);
-            this.tabControl1.Controls.Add(this.tabPage1);
             this.tabControl1.Controls.Add(this.tabPage3);
-            this.tabControl1.Controls.Add(this.tabPage5);
+            this.tabControl1.Controls.Add(this.tabPage1);
             this.tabControl1.Controls.Add(this.tabPage2);
             this.tabControl1.Location = new System.Drawing.Point(16, 15);
             this.tabControl1.Margin = new System.Windows.Forms.Padding(4);
@@ -263,7 +262,8 @@ namespace TTMulti.Forms
             this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
             this.tabPage1.Size = new System.Drawing.Size(742, 443);
             this.tabPage1.TabIndex = 7;
-            this.tabPage1.Text = "Modes";
+            this.tabPage1.Text = "Controller Modes";
+            this.tabPage1.AutoScroll = true;
             this.tabPage1.UseVisualStyleBackColor = true;
             // 
             // allGroupModeGroupBox
@@ -284,7 +284,7 @@ namespace TTMulti.Forms
             // 
             this.allGroupModeLabel.Location = new System.Drawing.Point(7, 22);
             this.allGroupModeLabel.Name = "allGroupModeLabel";
-            this.allGroupModeLabel.Size = new System.Drawing.Size(466, 40);
+            this.allGroupModeLabel.Size = new System.Drawing.Size(450, 40);
             this.allGroupModeLabel.TabIndex = 5;
             this.allGroupModeLabel.Text = "Make every left toon move at once, and every right toon move at once in all group" +
     "s at once.";
@@ -293,7 +293,7 @@ namespace TTMulti.Forms
             // 
             this.label12.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.label12.AutoSize = true;
-            this.label12.Location = new System.Drawing.Point(479, 16);
+            this.label12.Location = new System.Drawing.Point(479, 20);
             this.label12.Name = "label12";
             this.label12.Size = new System.Drawing.Size(56, 17);
             this.label12.TabIndex = 4;
@@ -317,7 +317,7 @@ namespace TTMulti.Forms
             // 
             this.mirrorModeLabel.Location = new System.Drawing.Point(7, 22);
             this.mirrorModeLabel.Name = "mirrorModeLabel";
-            this.mirrorModeLabel.Size = new System.Drawing.Size(466, 40);
+            this.mirrorModeLabel.Size = new System.Drawing.Size(450, 40);
             this.mirrorModeLabel.TabIndex = 5;
             this.mirrorModeLabel.Text = "Mirror input to all toons in all groups.";
             // 
@@ -325,7 +325,7 @@ namespace TTMulti.Forms
             // 
             this.label10.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.label10.AutoSize = true;
-            this.label10.Location = new System.Drawing.Point(479, 16);
+            this.label10.Location = new System.Drawing.Point(479, 20);
             this.label10.Name = "label10";
             this.label10.Size = new System.Drawing.Size(56, 17);
             this.label10.TabIndex = 4;
@@ -349,7 +349,7 @@ namespace TTMulti.Forms
             // 
             this.groupModeLabel.Location = new System.Drawing.Point(7, 22);
             this.groupModeLabel.Name = "groupModeLabel";
-            this.groupModeLabel.Size = new System.Drawing.Size(466, 40);
+            this.groupModeLabel.Size = new System.Drawing.Size(450, 40);
             this.groupModeLabel.TabIndex = 5;
             this.groupModeLabel.Text = "Control all pairs of left and right toons in a group.\r\nThe number keys are reserv" +
     "ed for switching groups.";
@@ -358,7 +358,7 @@ namespace TTMulti.Forms
             // 
             this.label8.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(479, 16);
+            this.label8.Location = new System.Drawing.Point(479, 20);
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(56, 17);
             this.label8.TabIndex = 4;
@@ -475,32 +475,9 @@ namespace TTMulti.Forms
             this.zeroPowerThrowGroupBox.TabStop = false;
             this.zeroPowerThrowGroupBox.Text = "Zero Power Throw Hotkey:";
             // 
-            // tabPage5
-            // 
-            this.tabPage5.Controls.Add(this.label2);
-            this.tabPage5.Controls.Add(this.checkBox4);
-            this.tabPage5.Controls.Add(this.keyPicker2);
-            this.tabPage5.Location = new System.Drawing.Point(4, 25);
-            this.tabPage5.Margin = new System.Windows.Forms.Padding(2);
-            this.tabPage5.Name = "tabPage5";
-            this.tabPage5.Padding = new System.Windows.Forms.Padding(4);
-            this.tabPage5.Size = new System.Drawing.Size(742, 443);
-            this.tabPage5.TabIndex = 5;
-            this.tabPage5.Text = "Keep-Alive";
-            this.tabPage5.UseVisualStyleBackColor = true;
-            // 
-            // label2
-            // 
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(8, 38);
-            this.label2.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(108, 17);
-            this.label2.TabIndex = 14;
-            this.label2.Text = "Keep-Alive Key:";
-            // 
             // tabPage2
             // 
+            this.tabPage2.Controls.Add(this.groupBox7);
             this.tabPage2.Controls.Add(this.groupBox6);
             this.tabPage2.Controls.Add(this.groupBox5);
             this.tabPage2.Location = new System.Drawing.Point(4, 25);
@@ -521,6 +498,29 @@ namespace TTMulti.Forms
             this.label7.Size = new System.Drawing.Size(56, 17);
             this.label7.TabIndex = 4;
             this.label7.Text = "Hotkey:";
+            // 
+            // groupBox7
+            // 
+            this.groupBox7.Controls.Add(this.label2);
+            this.groupBox7.Controls.Add(this.checkBox4);
+            this.groupBox7.Controls.Add(this.keyPicker2);
+            this.groupBox7.Dock = System.Windows.Forms.DockStyle.Top;
+            this.groupBox7.Location = new System.Drawing.Point(4, 100);
+            this.groupBox7.Name = "groupBox7";
+            this.groupBox7.Size = new System.Drawing.Size(734, 80);
+            this.groupBox7.TabIndex = 2;
+            this.groupBox7.TabStop = false;
+            this.groupBox7.Text = "Keep-Alive";
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(7, 50);
+            this.label2.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(108, 17);
+            this.label2.TabIndex = 14;
+            this.label2.Text = "Keep-Alive Key:";
             // 
             // groupBox6
             // 
@@ -587,7 +587,7 @@ namespace TTMulti.Forms
             this.checkBox4.AutoSize = true;
             this.checkBox4.Checked = global::TTMulti.Properties.Settings.Default.disableKeepAlive;
             this.checkBox4.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TTMulti.Properties.Settings.Default, "disableKeepAlive", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.checkBox4.Location = new System.Drawing.Point(8, 8);
+            this.checkBox4.Location = new System.Drawing.Point(7, 22);
             this.checkBox4.Margin = new System.Windows.Forms.Padding(4);
             this.checkBox4.Name = "checkBox4";
             this.checkBox4.Size = new System.Drawing.Size(149, 21);
@@ -758,7 +758,7 @@ namespace TTMulti.Forms
             this.keyPicker2.ChosenKey = System.Windows.Forms.Keys.Home;
             this.keyPicker2.ChosenKeyCode = global::TTMulti.Properties.Settings.Default.keepAliveKeyCode;
             this.keyPicker2.DataBindings.Add(new System.Windows.Forms.Binding("ChosenKeyCode", global::TTMulti.Properties.Settings.Default, "keepAliveKeyCode", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.keyPicker2.Location = new System.Drawing.Point(124, 36);
+            this.keyPicker2.Location = new System.Drawing.Point(123, 48);
             this.keyPicker2.Margin = new System.Windows.Forms.Padding(5);
             this.keyPicker2.MinimumSize = new System.Drawing.Size(50, 25);
             this.keyPicker2.Name = "keyPicker2";
@@ -802,9 +802,9 @@ namespace TTMulti.Forms
             this.groupBox1.ResumeLayout(false);
             this.multiclickGroupBox.ResumeLayout(false);
             this.zeroPowerThrowGroupBox.ResumeLayout(false);
-            this.tabPage5.ResumeLayout(false);
-            this.tabPage5.PerformLayout();
             this.tabPage2.ResumeLayout(false);
+            this.groupBox7.ResumeLayout(false);
+            this.groupBox7.PerformLayout();
             this.groupBox6.ResumeLayout(false);
             this.groupBox6.PerformLayout();
             this.groupBox5.ResumeLayout(false);
@@ -827,10 +827,10 @@ namespace TTMulti.Forms
         private System.Windows.Forms.CheckBox checkBox2;
         private System.Windows.Forms.ToolTip toolTip1;
         private System.Windows.Forms.CheckBox checkBox3;
-        private System.Windows.Forms.TabPage tabPage5;
         private System.Windows.Forms.CheckBox checkBox4;
         private System.Windows.Forms.Label label2;
         private Controls.KeyPicker keyPicker2;
+        private System.Windows.Forms.GroupBox groupBox7;
         private System.Windows.Forms.TabPage tabPage6;
         private System.Windows.Forms.Label label3;
         private Controls.ControlsPicker controlsPicker;
