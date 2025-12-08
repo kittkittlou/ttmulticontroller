@@ -35,6 +35,18 @@ namespace TTMulti
             return wndPlacement.ShowCmd;
         }
 
+        
+        public static void SetWindowAttribute(
+            IntPtr handle, WindowAttributeTypes attributeType, WindowAttributeValues value)
+        {
+            var ptr = (int)value;
+            DwmSetWindowAttribute(handle, (int)attributeType, ref ptr, sizeof(int));
+        }
+        
+        [DllImport("dwmapi.dll")]
+        internal static extern int DwmSetWindowAttribute(
+            IntPtr hwnd, int attr, ref int value, int size);
+
         [return: MarshalAs(UnmanagedType.Bool)]
         [DllImport("user32.dll", SetLastError = true)]
         internal static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
@@ -1268,6 +1280,28 @@ namespace TTMulti
             /// <summary>Displays the window.</summary>
             /// <remarks>SWP_SHOWWINDOW</remarks>
             ShowWindow = 0x0040,
+        }
+
+        /// <summary>
+        /// Window attributes to be used with the DWM API.
+        /// </summary>
+        internal enum WindowAttributeTypes : uint
+        {
+            /// <summary>
+            /// This attribute controls whether to use rounded edges for windows.
+            /// </summary>
+            RoundedEdges = 33
+        }
+        
+        /// <summary>
+        /// Window attributes to be used with the DWM API.
+        /// </summary>
+        internal enum WindowAttributeValues : uint
+        {
+            /// <summary>
+            /// Meant to be used as a value for RoundedEdges to enforce not rounding the edges.
+            /// </summary>
+            DWMWCP_DONOTROUND = 1
         }
 
         [StructLayout(LayoutKind.Sequential)]
