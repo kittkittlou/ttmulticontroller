@@ -43,79 +43,6 @@ namespace TTMulti
             DwmSetWindowAttribute(handle, (int)attributeType, ref ptr, sizeof(int));
         }
         
-        /// <summary>
-        /// Set dark mode for a window's title bar (Windows 11)
-        /// </summary>
-        public static void SetDarkMode(IntPtr handle, bool enabled)
-        {
-            int value = enabled ? 1 : 0;
-            DwmSetWindowAttribute(handle, (int)WindowAttributeTypes.UseImmersiveDarkMode, ref value, sizeof(int));
-        }
-        
-        /// <summary>
-        /// Set the title bar color for a window (Windows 11)
-        /// Note: Title bar colors in Windows 11 are primarily visible on inactive windows.
-        /// Active windows use the system accent color by design.
-        /// </summary>
-        public static void SetTitleBarColor(IntPtr handle, Color color)
-        {
-            // Check if we're on Windows 11 (build 22000 or later)
-            // Note: Environment.OSVersion may not report Windows 11 correctly,
-            // but we'll check the build number anyway
-            if (Environment.OSVersion.Version.Build < 22000)
-            {
-                // Title bar color API is only available on Windows 11
-                return;
-            }
-            
-            // Validate window handle
-            if (handle == IntPtr.Zero || !IsWindow(handle))
-            {
-                return;
-            }
-            
-            // IMPORTANT: Disable dark mode first - custom title bar colors require light mode
-            // Dark mode overrides custom colors, so we must disable it
-            int darkModeValue = 0; // 0 = light mode (required for custom colors)
-            DwmSetWindowAttribute(handle, (int)WindowAttributeTypes.UseImmersiveDarkMode, ref darkModeValue, sizeof(int));
-            
-            // Convert Color to COLORREF format
-            // COLORREF format: (R | (G << 8) | (B << 16)) - this is the Windows RGB macro format
-            int colorValue = (color.R) | (color.G << 8) | (color.B << 16);
-            
-            // Set caption (title bar) background color
-            // DWMWA_CAPTION_COLOR = 35
-            int result1 = DwmSetWindowAttribute(handle, (int)WindowAttributeTypes.CaptionColor, ref colorValue, sizeof(int));
-            
-            // Set text color to white for dark backgrounds, black for light backgrounds
-            // Determine if background is dark by checking luminance
-            int luminance = (int)(0.299 * color.R + 0.587 * color.G + 0.114 * color.B);
-            int textColorValue = luminance < 128 ? 0x00FFFFFF : 0x00000000; // White for dark, black for light
-            
-            // Set caption (title bar) text color
-            // DWMWA_TEXT_COLOR = 36
-            int result2 = DwmSetWindowAttribute(handle, (int)WindowAttributeTypes.TextColor, ref textColorValue, sizeof(int));
-            
-            // Force window to redraw title bar
-            // Method 1: Use SetWindowPos with SWP_FRAMECHANGED
-            SetWindowPos(handle, IntPtr.Zero, 0, 0, 0, 0, 
-                SetWindowPosFlags.IgnoreMove | SetWindowPosFlags.IgnoreResize | 
-                SetWindowPosFlags.IgnoreZOrder | SetWindowPosFlags.FrameChanged);
-            
-            // Method 2: Minimize and restore (sometimes needed for Windows to apply the change)
-            // Get current window state
-            var placement = new WINDOWPLACEMENT();
-            placement.Length = Marshal.SizeOf(placement);
-            GetWindowPlacement(handle, ref placement);
-            
-            // Only minimize/restore if window is not already minimized
-            if (placement.ShowCmd != ShowWindowCommands.ShowMinimized)
-            {
-                ShowWindow(handle, ShowWindowCommands.Minimize);
-                ShowWindow(handle, ShowWindowCommands.Restore);
-            }
-        }
-        
         private const int DWMWA_EXTENDED_FRAME_BOUNDS = 9;
         
         /// <summary>
@@ -1413,19 +1340,7 @@ namespace TTMulti
             /// <summary>
             /// Controls the color of the window border.
             /// </summary>
-            WindowBorderColor = 34,
-            /// <summary>
-            /// Controls the caption (title bar) background color (Windows 11).
-            /// </summary>
-            CaptionColor = 35,
-            /// <summary>
-            /// Controls the caption (title bar) text color (Windows 11).
-            /// </summary>
-            TextColor = 36,
-            /// <summary>
-            /// Controls whether to use immersive dark mode for the title bar (Windows 11).
-            /// </summary>
-            UseImmersiveDarkMode = 20
+            WindowBorderColor = 34
         }
         
         /// <summary>

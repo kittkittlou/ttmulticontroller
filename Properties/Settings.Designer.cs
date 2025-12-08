@@ -97,18 +97,6 @@ namespace TTMulti.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool matchTitleBarToBorder {
-            get {
-                return ((bool)(this["matchTitleBarToBorder"]));
-            }
-            set {
-                this["matchTitleBarToBorder"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("192")]
         public int modeKeyCode {
             get {

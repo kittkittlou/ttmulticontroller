@@ -66,9 +66,6 @@ namespace TTMulti
                         // Border position will be updated by WindowWatcher events
                         // Force an immediate update to ensure borders are correct
                         UpdateBorderPosition();
-                        
-                        // Apply title bar color matching if enabled
-                        ApplyTitleBarColor();
                     }
 
                     WindowHandleChanged?.Invoke(this, EventArgs.Empty);
@@ -359,12 +356,6 @@ namespace TTMulti
 
                 _borderWnd.ShowFakeCursor = false;
             }
-            
-            // Apply title bar color if enabled
-            if (HasWindow)
-            {
-                ApplyTitleBarColor();
-            }
 
             if (showMouseOverlayWindow)
             {
@@ -450,58 +441,6 @@ namespace TTMulti
                     _borderWnd.Location = _overlayWnd.Location = clientLocation;
                 }
             }
-        }
-
-        /// <summary>
-        /// Apply title bar color based on border color if matching is enabled
-        /// </summary>
-        internal void ApplyTitleBarColor()
-        {
-            if (!HasWindow)
-                return;
-
-            if (!Properties.Settings.Default.matchTitleBarToBorder)
-            {
-                // If disabled, don't set anything - let Windows use default behavior
-                // Don't force dark mode as it might interfere with user's system settings
-                return;
-            }
-
-            // Determine the border color for this controller
-            Color borderColor;
-            
-            if (multicontroller.ShowAllBorders && multicontroller.IsActive)
-            {
-                borderColor = Type == ControllerType.Left ? Colors.LeftGroup : Colors.RightGroup;
-            }
-            else if (multicontroller.IsActive)
-            {
-                switch (multicontroller.CurrentMode)
-                {
-                    case MulticontrollerMode.Group:
-                    case MulticontrollerMode.AllGroup:
-                        borderColor = Type == ControllerType.Left ? Colors.LeftGroup : Colors.RightGroup;
-                        break;
-                    case MulticontrollerMode.MirrorAll:
-                        borderColor = Colors.AllGroups;
-                        break;
-                    case MulticontrollerMode.Focused:
-                        borderColor = Colors.Focused;
-                        break;
-                    default:
-                        borderColor = Type == ControllerType.Left ? Colors.LeftGroup : Colors.RightGroup;
-                        break;
-                }
-            }
-            else
-            {
-                // Default to left/right group colors
-                borderColor = Type == ControllerType.Left ? Colors.LeftGroup : Colors.RightGroup;
-            }
-            
-            // Darken the border color by 30% for the title bar
-            Color titleBarColor = Colors.Darken(borderColor, 0.3f);
-            Win32.SetTitleBarColor(WindowHandle, titleBarColor);
         }
 
         /// <summary>
