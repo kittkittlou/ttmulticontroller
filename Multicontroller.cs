@@ -1648,7 +1648,16 @@ namespace TTMulti
                     windowSize.Height,
                     Win32.SetWindowPosFlags.ShowWindow | Win32.SetWindowPosFlags.DoNotActivate
                 );
+                
+                // Do not round window corners.
+                Win32.SetWindowAttribute(
+                    controller.WindowHandle,
+                    Win32.WindowAttributeTypes.RoundedEdges,
+                    Win32.WindowAttributeValues.DWMWCP_DONOTROUND
+                );
             }
+
+            
 
             // Clear switched controllers list since layout has been applied
             ClearSwitchedControllers();
