@@ -43,6 +43,48 @@ namespace TTMulti
             DwmSetWindowAttribute(handle, (int)attributeType, ref ptr, sizeof(int));
         }
         
+        private const int DWMWA_EXTENDED_FRAME_BOUNDS = 9;
+        
+        /// <summary>
+        /// Returns true pixel-accurate window border sizes including caption height.
+        /// Works on Windows 10/11 and is DPI-accurate.
+        /// </summary>
+        public static FrameThickness GetFrameThickness(IntPtr hwnd)
+        {
+            // Full window bounds
+            GetWindowRect(hwnd, out var win);
+
+            // Visual client bounds (excludes frame + caption)
+            DwmGetWindowAttribute(
+                hwnd,
+                DWMWA_EXTENDED_FRAME_BOUNDS,
+                out var frame,
+                Marshal.SizeOf<RECT>()
+            );
+
+            return new FrameThickness
+            {
+                Left   = frame.Left   - win.Left,
+                Top    = frame.Top    - win.Top,
+                Right  = win.Right    - frame.Right,
+                Bottom = win.Bottom   - frame.Bottom
+            };
+        }
+        
+        public struct FrameThickness
+        {
+            public int Left, Right, Top, Bottom;
+            public override string ToString()
+                => $"L={Left} T={Top} R={Right} B={Bottom}";
+        }
+        
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmGetWindowAttribute(
+            IntPtr hwnd,
+            int dwAttribute,
+            out RECT pvAttribute,
+            int cbAttribute);
+        
         [DllImport("dwmapi.dll")]
         internal static extern int DwmSetWindowAttribute(
             IntPtr hwnd, int attr, ref int value, int size);
@@ -1288,9 +1330,17 @@ namespace TTMulti
         internal enum WindowAttributeTypes : uint
         {
             /// <summary>
+            /// todo
+            /// </summary>
+            DropShadow = 2,
+            /// <summary>
             /// This attribute controls whether to use rounded edges for windows.
             /// </summary>
-            RoundedEdges = 33
+            RoundedEdges = 33,
+            /// <summary>
+            /// Controls the color of the window border.
+            /// </summary>
+            WindowBorderColor = 34
         }
         
         /// <summary>
@@ -1301,7 +1351,11 @@ namespace TTMulti
             /// <summary>
             /// Meant to be used as a value for RoundedEdges to enforce not rounding the edges.
             /// </summary>
-            DWMWCP_DONOTROUND = 1
+            DWMWCP_DONOTROUND = 1,
+            /// <summary>
+            /// Meant to be used as a value for DropShadow to disable drop shadows on windows.
+            /// </summary>
+            DWMWA_NCRENDERING_POLICY = 2
         }
 
         [StructLayout(LayoutKind.Sequential)]

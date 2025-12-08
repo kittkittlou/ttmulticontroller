@@ -1627,7 +1627,7 @@ namespace TTMulti
             }
 
             // Calculate grid layout (window size and positions)
-            var (windowSize, positions) = preset.CalculateGridLayout(controllersWithWindows.Count);
+            var (windowSize, positions) = preset.CalculateGridLayout(controllersWithWindows.Count, controllersWithWindows.First().WindowHandle);
 
             if (windowSize.IsEmpty || positions.Length == 0)
                 return;
@@ -1655,9 +1655,21 @@ namespace TTMulti
                     Win32.WindowAttributeTypes.RoundedEdges,
                     Win32.WindowAttributeValues.DWMWCP_DONOTROUND
                 );
+                
+                // Do not show drop shadows.
+                Win32.SetWindowAttribute(
+                    controller.WindowHandle,
+                    Win32.WindowAttributeTypes.DropShadow,
+                    Win32.WindowAttributeValues.DWMWA_NCRENDERING_POLICY
+                );
+                
+                // Make the window borders opaque to prevent pixel bleed from the desktop.
+                Win32.SetWindowAttribute(
+                    controller.WindowHandle,
+                    Win32.WindowAttributeTypes.WindowBorderColor,
+                    0x000000
+                );
             }
-
-            
 
             // Clear switched controllers list since layout has been applied
             ClearSwitchedControllers();

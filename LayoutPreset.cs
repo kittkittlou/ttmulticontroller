@@ -101,60 +101,59 @@ namespace TTMulti
         /// <summary>
         /// Calculate window size and positions for the given number of windows using grid layout across multiple regions
         /// </summary>
-        public (Size windowSize, Point[] positions) CalculateGridLayout(int windowCount)
+        public (Size windowSize, Point[] positions) CalculateGridLayout(int windowCount, IntPtr sampleWindowHandle)
         {
             if (windowCount == 0 || Columns <= 0 || Rows <= 0 || Regions == null || Regions.Count == 0)
-            {
-                return (Size.Empty, new Point[0]);
-            }
+                return (Size.Empty, Array.Empty<Point>());
 
-            // Windows 10+ adds invisible resize borders (~7px on each side)
-            // We need to compensate for these to achieve perfect tiling
-            const int borderCompensation = 7;
+            // Get true frame values including caption height
+            var frame = Win32.GetFrameThickness(sampleWindowHandle);
 
-            List<Point> allPositions = new List<Point>();
+            List<Point> positions = new List<Point>();
             int windowsPlaced = 0;
-            int slotsPerRegion = Columns * Rows;
+            int maxPerRegion = Columns * Rows;
 
-            // Process each region sequentially
             foreach (var region in Regions)
             {
                 if (windowsPlaced >= windowCount)
                     break;
 
-                // Calculate window dimensions for this region
-                int windowWidth = region.Width / Columns;
-                int windowHeight = region.Height / Rows;
+                // Client area desired per window
+                int clientWidth = region.Width / Columns;
+                int clientHeight = region.Height / Rows;
 
-                // Calculate how many windows to place in this region
-                int windowsInThisRegion = Math.Min(slotsPerRegion, windowCount - windowsPlaced);
+                int windowsInRegion = Math.Min(maxPerRegion, windowCount - windowsPlaced);
 
-                // Calculate positions for windows in this region
-                for (int i = 0; i < windowsInThisRegion; i++)
+                for (int i = 0; i < windowsInRegion; i++)
                 {
                     int row = i / Columns;
                     int col = i % Columns;
 
-                    allPositions.Add(new Point(
-                        region.X + (col * windowWidth) - borderCompensation, // Shift left by border
-                        region.Y + (row * windowHeight)
-                    ));
+                    // Where the CLIENT RECT should appear
+                    int clientX = region.X + (col * clientWidth);
+                    int clientY = region.Y + (row * clientHeight);
+
+                    // Convert client origin → window origin by subtracting borders
+                    int windowX = clientX - frame.Left;
+                    int windowY = clientY - frame.Top;
+
+                    positions.Add(new Point(windowX, windowY));
                 }
 
-                windowsPlaced += windowsInThisRegion;
+                windowsPlaced += windowsInRegion;
             }
 
-            // Use the first region's dimensions for window size (assumes all regions use same grid)
-            var firstRegion = Regions[0];
-            int baseWidth = firstRegion.Width / Columns;
-            int baseHeight = firstRegion.Height / Rows;
-            
-            Size windowSize = new Size(
-                baseWidth + (borderCompensation * 2 + 1), // Add to both left and right
-                baseHeight + borderCompensation + 1       // Add to bottom (no top border)
+            // Compute size from first region
+            var first = Regions[0];
+            int firstClientWidth = first.Width / Columns;
+            int firstClientHeight = first.Height / Rows + 1;
+
+            Size finalWindowSize = new Size(
+                firstClientWidth + frame.Left + frame.Right,
+                firstClientHeight + frame.Top + frame.Bottom
             );
 
-            return (windowSize, allPositions.ToArray());
+            return (finalWindowSize, positions.ToArray());
         }
 
         /// <summary>
