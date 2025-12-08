@@ -43,6 +43,79 @@ namespace TTMulti
             DwmSetWindowAttribute(handle, (int)attributeType, ref ptr, sizeof(int));
         }
         
+        /// <summary>
+        /// Set the caption (title bar) color for inactive windows.
+        /// </summary>
+        /// <param name="handle">Window handle</param>
+        /// <param name="color">Color to use for the caption, or null to reset to default</param>
+        public static void SetWindowCaptionColor(IntPtr handle, Color? color)
+        {
+            int colorRef;
+            if (color.HasValue)
+            {
+                // COLORREF format: 0x00BBGGRR (Blue-Green-Red, not RGB)
+                colorRef = (color.Value.B << 16) | (color.Value.G << 8) | color.Value.R;
+            }
+            else
+            {
+                // 0xFFFFFFFF (-1) tells Windows to use the default system color
+                colorRef = unchecked((int)0xFFFFFFFF);
+            }
+            DwmSetWindowAttribute(handle, (int)WindowAttributeTypes.CaptionColor, ref colorRef, sizeof(int));
+            
+            // Also set the text color based on caption color brightness
+            if (color.HasValue)
+            {
+                SetWindowCaptionTextColor(handle, color.Value);
+            }
+            else
+            {
+                // Reset text color to default
+                int defaultTextColor = unchecked((int)0xFFFFFFFF);
+                DwmSetWindowAttribute(handle, (int)WindowAttributeTypes.TextColor, ref defaultTextColor, sizeof(int));
+            }
+        }
+        
+        /// <summary>
+        /// Calculate relative luminance using WCAG 2.0 formula for better accuracy.
+        /// Returns a value between 0.0 (darkest) and 1.0 (lightest).
+        /// </summary>
+        private static double CalculateRelativeLuminance(Color color)
+        {
+            // Convert RGB values (0-255) to normalized values (0.0-1.0)
+            double r = color.R / 255.0;
+            double g = color.G / 255.0;
+            double b = color.B / 255.0;
+            
+            // Apply gamma correction for sRGB
+            r = r <= 0.03928 ? r / 12.92 : Math.Pow((r + 0.055) / 1.055, 2.4);
+            g = g <= 0.03928 ? g / 12.92 : Math.Pow((g + 0.055) / 1.055, 2.4);
+            b = b <= 0.03928 ? b / 12.92 : Math.Pow((b + 0.055) / 1.055, 2.4);
+            
+            // Calculate relative luminance using WCAG 2.0 coefficients
+            return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        }
+        
+        /// <summary>
+        /// Set the caption (title bar) text color based on the caption background color brightness.
+        /// Uses white text for dark backgrounds and black text for light backgrounds.
+        /// </summary>
+        /// <param name="handle">Window handle</param>
+        /// <param name="captionColor">The caption background color (the darkened border color)</param>
+        private static void SetWindowCaptionTextColor(IntPtr handle, Color captionColor)
+        {
+            // Calculate relative luminance using WCAG 2.0 formula for accurate brightness determination
+            double luminance = CalculateRelativeLuminance(captionColor);
+            
+            // Use white text for dark backgrounds (luminance < 0.5), black for light backgrounds
+            // The 0.5 threshold is standard for determining dark vs light colors
+            Color textColor = luminance < 0.5 ? Color.White : Color.Black;
+            
+            // Text color format: RGB (not BGR like caption color)
+            int textColorRef = textColor.R | (textColor.G << 8) | (textColor.B << 16);
+            DwmSetWindowAttribute(handle, (int)WindowAttributeTypes.TextColor, ref textColorRef, sizeof(int));
+        }
+        
         private const int DWMWA_EXTENDED_FRAME_BOUNDS = 9;
         
         /// <summary>
@@ -1340,7 +1413,16 @@ namespace TTMulti
             /// <summary>
             /// Controls the color of the window border.
             /// </summary>
-            WindowBorderColor = 34
+            WindowBorderColor = 34,
+            /// <summary>
+            /// Controls the color of the window caption (title bar) for inactive windows.
+            /// </summary>
+            CaptionColor = 35,
+            /// <summary>
+            /// Controls the color of the window caption text (title bar text).
+            /// Supported starting with Windows 11 Build 22000.
+            /// </summary>
+            TextColor = 36
         }
         
         /// <summary>

@@ -53,6 +53,12 @@ namespace TTMulti
             {
                 if (_windowHandle != value)
                 {
+                    // If we're removing the window handle, reset caption color to default before disconnecting
+                    if (value == IntPtr.Zero && _windowHandle != IntPtr.Zero && Properties.Settings.Default.enableCaptionColor)
+                    {
+                        Win32.SetWindowCaptionColor(_windowHandle, null);
+                    }
+                    
                     if (_windowHandle != IntPtr.Zero)
                     {
                         WindowWatcher.Instance.StopWatchingWindow(_windowHandle);
@@ -291,6 +297,17 @@ namespace TTMulti
         }
 
         /// <summary>
+        /// Darkens a color by multiplying RGB values by a factor (0.0 to 1.0).
+        /// </summary>
+        private static Color DarkenColor(Color color, float factor)
+        {
+            int r = (int)(color.R * factor);
+            int g = (int)(color.G * factor);
+            int b = (int)(color.B * factor);
+            return Color.FromArgb(color.A, Math.Max(0, Math.Min(255, r)), Math.Max(0, Math.Min(255, g)), Math.Max(0, Math.Min(255, b)));
+        }
+
+        /// <summary>
         /// Refresh settings of the controller and its utility windows
         /// </summary>
         private void Refresh()
@@ -320,39 +337,164 @@ namespace TTMulti
                 _overlayWnd.Hide();
             }
 
-            if (showBorderWindow)
+            // Update caption color based on border visibility
+            if (Properties.Settings.Default.enableCaptionColor && HasWindow)
+            {
+                if (showBorderWindow)
+                {
+                    // TODO: why is this needed?
+                    _borderWnd.WindowState = FormWindowState.Normal;
+
+                    Color borderColor;
+                    
+                    // Check if switching mode is active (handled by Multicontroller)
+                    // If in switching mode, use switching mode colors
+                    if (_borderWnd.SwitchingMode)
+                    {
+                        // Priority: Selected > Marked for Removal > Switched > Normal
+                        if (_borderWnd.SwitchingSelected)
+                        {
+                            borderColor = Colors.SwitchingSelected;
+                        }
+                        else if (_borderWnd.SwitchingMarkedForRemoval)
+                        {
+                            borderColor = Colors.SwitchingMarkedForRemoval;
+                        }
+                        else if (_borderWnd.SwitchingSwitched)
+                        {
+                            borderColor = Colors.SwitchingSwitched;
+                        }
+                        else
+                        {
+                            borderColor = Colors.SwitchingMode;
+                        }
+                    }
+                    else if (_borderWnd.SwitchingSelected)
+                    {
+                        // Keep yellow border even after switching mode exits, until layout/resize
+                        borderColor = Colors.SwitchingSelected;
+                    }
+                    else
+                    {
+                        // Normal mode - set border colors based on mode
+                        _borderWnd.ShowGroupNumber = multicontroller.IsActive
+                            && (multicontroller.ShowAllBorders || multicontroller.ControllerGroups.Count > 1);
+
+                        if (multicontroller.ShowAllBorders && multicontroller.IsActive)
+                        {
+                            borderColor = Type == ControllerType.Left ? Colors.LeftGroup : Colors.RightGroup;
+                        }
+                        else if (multicontroller.IsActive)
+                        {
+                            switch (multicontroller.CurrentMode)
+                            {
+                                case MulticontrollerMode.Group:
+                                case MulticontrollerMode.AllGroup:
+                                    borderColor = Type == ControllerType.Left ? Colors.LeftGroup : Colors.RightGroup;
+                                    break;
+                                case MulticontrollerMode.MirrorAll:
+                                    borderColor = Colors.AllGroups;
+                                    break;
+                                case MulticontrollerMode.Focused:
+                                    borderColor = Colors.Focused;
+                                    break;
+                                default:
+                                    borderColor = _borderWnd.BorderColor; // Keep current color
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            borderColor = _borderWnd.BorderColor; // Keep current color
+                        }
+                    }
+                    
+                    // Set border color
+                    _borderWnd.BorderColor = borderColor;
+                    
+                    // Darken the border color for caption (make it slightly darker)
+                    Color captionColor = DarkenColor(borderColor, 0.75f);
+                    Win32.SetWindowCaptionColor(WindowHandle, captionColor);
+
+                    _borderWnd.ShowFakeCursor = false;
+                }
+                else
+                {
+                    // No border shown - reset caption color to default
+                    Win32.SetWindowCaptionColor(WindowHandle, null);
+                }
+            }
+            else if (showBorderWindow)
             {
                 // TODO: why is this needed?
                 _borderWnd.WindowState = FormWindowState.Normal;
 
+                Color borderColor;
+                
                 // Check if switching mode is active (handled by Multicontroller)
-                // If not in switching mode, set normal border colors
-                if (!_borderWnd.SwitchingMode)
+                // If in switching mode, use switching mode colors
+                if (_borderWnd.SwitchingMode)
                 {
-                _borderWnd.ShowGroupNumber = multicontroller.IsActive
-                    && (multicontroller.ShowAllBorders || multicontroller.ControllerGroups.Count > 1);
-
-                if (multicontroller.ShowAllBorders && multicontroller.IsActive)
-                {
-                    _borderWnd.BorderColor = Type == ControllerType.Left ? Colors.LeftGroup : Colors.RightGroup;
-                }
-                else if (multicontroller.IsActive)
-                {
-                    switch (multicontroller.CurrentMode)
+                    // Priority: Selected > Marked for Removal > Switched > Normal
+                    if (_borderWnd.SwitchingSelected)
                     {
-                        case MulticontrollerMode.Group:
-                        case MulticontrollerMode.AllGroup:
-                            _borderWnd.BorderColor = Type == ControllerType.Left ? Colors.LeftGroup : Colors.RightGroup;
-                            break;
-                        case MulticontrollerMode.MirrorAll:
-                            _borderWnd.BorderColor = Colors.AllGroups;
-                            break;
-                        case MulticontrollerMode.Focused:
-                            _borderWnd.BorderColor = Colors.Focused;
-                            break;
-                        }
+                        borderColor = Colors.SwitchingSelected;
+                    }
+                    else if (_borderWnd.SwitchingMarkedForRemoval)
+                    {
+                        borderColor = Colors.SwitchingMarkedForRemoval;
+                    }
+                    else if (_borderWnd.SwitchingSwitched)
+                    {
+                        borderColor = Colors.SwitchingSwitched;
+                    }
+                    else
+                    {
+                        borderColor = Colors.SwitchingMode;
                     }
                 }
+                else if (_borderWnd.SwitchingSelected)
+                {
+                    // Keep yellow border even after switching mode exits, until layout/resize
+                    borderColor = Colors.SwitchingSelected;
+                }
+                else
+                {
+                    // Normal mode - set border colors based on mode
+                    _borderWnd.ShowGroupNumber = multicontroller.IsActive
+                        && (multicontroller.ShowAllBorders || multicontroller.ControllerGroups.Count > 1);
+
+                    if (multicontroller.ShowAllBorders && multicontroller.IsActive)
+                    {
+                        borderColor = Type == ControllerType.Left ? Colors.LeftGroup : Colors.RightGroup;
+                    }
+                    else if (multicontroller.IsActive)
+                    {
+                        switch (multicontroller.CurrentMode)
+                        {
+                            case MulticontrollerMode.Group:
+                            case MulticontrollerMode.AllGroup:
+                                borderColor = Type == ControllerType.Left ? Colors.LeftGroup : Colors.RightGroup;
+                                break;
+                            case MulticontrollerMode.MirrorAll:
+                                borderColor = Colors.AllGroups;
+                                break;
+                            case MulticontrollerMode.Focused:
+                                borderColor = Colors.Focused;
+                                break;
+                            default:
+                                borderColor = _borderWnd.BorderColor; // Keep current color
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        borderColor = _borderWnd.BorderColor; // Keep current color
+                    }
+                }
+                
+                // Set border color
+                _borderWnd.BorderColor = borderColor;
 
                 _borderWnd.ShowFakeCursor = false;
             }

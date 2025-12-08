@@ -470,10 +470,11 @@ namespace TTMulti
             }
 
             // Update switching mode display for all controllers
-            UpdateSwitchingModeDisplay();
+            // Don't trigger SettingChanged here - it's called when state actually changes
+            UpdateSwitchingModeDisplay(false);
         }
 
-        private void UpdateSwitchingModeDisplay()
+        private void UpdateSwitchingModeDisplay(bool triggerRefresh = true)
         {
             // Calculate switching numbers based on group and type (Left/Right)
             // All controllers with the same group and type get the same number, regardless of pair
@@ -503,7 +504,15 @@ namespace TTMulti
                     borderWnd.SwitchingMarkedForRemoval = isMarkedForRemoval;
                 }
             }
+            
+            // Trigger refresh on all controllers to update caption colors after switching mode properties are set
+            // Only trigger if requested (not on every timer tick)
+            if (triggerRefresh)
+            {
+                SettingChanged?.Invoke(this, EventArgs.Empty);
+            }
         }
+        
 
         private void ExitSwitchingMode()
         {
@@ -972,9 +981,9 @@ namespace TTMulti
                         // Install global mouse hook to block clicks during switching mode
                         InstallMouseHook();
                         
-                        // Trigger refresh so all border windows are shown
-                        SettingChanged?.Invoke(this, EventArgs.Empty);
-                        UpdateSwitchingModeDisplay();
+                        // Update switching mode display first (sets properties on BorderWnd)
+                        // This will trigger refresh to update caption colors
+                        UpdateSwitchingModeDisplay(true);
                         return true;
                     }
                 }

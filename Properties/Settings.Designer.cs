@@ -73,6 +73,18 @@ namespace TTMulti.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool enableCaptionColor {
+            get {
+                return ((bool)(this["enableCaptionColor"]));
+            }
+            set {
+                this["enableCaptionColor"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("1")]
         public int numberOfGroups {
             get {

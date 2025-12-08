@@ -476,6 +476,8 @@ namespace TTMulti.Forms
             controller.ShouldActivate += Controller_ShouldActivate;
             controller.WindowActivated += Controller_WindowActivated;
             controller.AllWindowsInactive += Controller_AllWindowsInactive;
+            controller.ActiveChanged += Controller_ActiveChanged;
+            controller.SettingChanged += Controller_SettingChanged;
 
             // Ensure at least one group exists before accessing it
             if (controller.ControllerGroups.Count == 0)
@@ -524,6 +526,9 @@ namespace TTMulti.Forms
 
             // Multicontroller could have loaded groups
             UpdateWindowStatus();
+            
+            // Set initial caption color
+            UpdateCaptionColor();
         }
         
         private void MulticontrollerWnd_Shown(object sender, EventArgs e)
@@ -662,6 +667,94 @@ namespace TTMulti.Forms
             }
 
             UpdateWindowStatus();
+            UpdateCaptionColor();
+        }
+        
+        private void Controller_ActiveChanged(object sender, EventArgs e)
+        {
+            UpdateCaptionColor();
+        }
+        
+        private void Controller_SettingChanged(object sender, EventArgs e)
+        {
+            UpdateCaptionColor();
+        }
+        
+        /// <summary>
+        /// Darkens a color by multiplying RGB values by a factor (0.0 to 1.0).
+        /// </summary>
+        private static Color DarkenColor(Color color, float factor)
+        {
+            int r = (int)(color.R * factor);
+            int g = (int)(color.G * factor);
+            int b = (int)(color.B * factor);
+            return Color.FromArgb(color.A, Math.Max(0, Math.Min(255, r)), Math.Max(0, Math.Min(255, g)), Math.Max(0, Math.Min(255, b)));
+        }
+        
+        /// <summary>
+        /// Blends two colors by averaging their RGB components.
+        /// </summary>
+        private static Color BlendColors(Color color1, Color color2)
+        {
+            int r = (color1.R + color2.R) / 2;
+            int g = (color1.G + color2.G) / 2;
+            int b = (color1.B + color2.B) / 2;
+            return Color.FromArgb(color1.A, r, g, b);
+        }
+        
+        /// <summary>
+        /// Updates the multicontroller window's caption color to match the current mode and sync with toontown windows.
+        /// </summary>
+        private void UpdateCaptionColor()
+        {
+            if (!Properties.Settings.Default.enableCaptionColor)
+            {
+                // Reset to default if caption color is disabled
+                Win32.SetWindowCaptionColor(this.Handle, null);
+                return;
+            }
+            
+            Color borderColor;
+            
+            // Check if switching mode is active
+            if (controller.IsSwitchingMode)
+            {
+                borderColor = Colors.SwitchingMode;
+            }
+            else if (controller.IsActive)
+            {
+                // Normal mode - set border colors based on mode
+                switch (controller.CurrentMode)
+                {
+                    case MulticontrollerMode.Group:
+                    case MulticontrollerMode.AllGroup:
+                        // Blend left and right group colors to represent both sides
+                        // This creates a middle color since DWM doesn't support split colors
+                        borderColor = BlendColors(Colors.LeftGroup, Colors.RightGroup);
+                        break;
+                    case MulticontrollerMode.MirrorAll:
+                        borderColor = Colors.AllGroups;
+                        break;
+                    case MulticontrollerMode.Focused:
+                        borderColor = Colors.Focused;
+                        break;
+                    default:
+                        // Keep current color or use a default
+                        borderColor = Colors.LeftGroup;
+                        break;
+                }
+            }
+            else
+            {
+                // Not active - reset to default
+                Win32.SetWindowCaptionColor(this.Handle, null);
+                return;
+            }
+            
+            // Darken the border color for caption (make it slightly darker)
+            // Use the same factor as ToontownController for consistency
+            Color captionColor = DarkenColor(borderColor, 0.85f);
+            Win32.SetWindowCaptionColor(this.Handle, captionColor);
         }
 
         private void optionsBtn_Click(object sender, EventArgs e)

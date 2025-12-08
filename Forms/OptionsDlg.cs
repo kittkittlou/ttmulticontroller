@@ -248,6 +248,9 @@ namespace TTMulti.Forms
         private Button switchingSelectedColorButton;
         private Button switchingSwitchedColorButton;
         private Button switchingRemovedColorButton;
+        
+        // Caption color control
+        private CheckBox enableCaptionColorCheckBox;
 
         private void OptionsDlg_Load(object sender, EventArgs e)
         {
@@ -274,6 +277,9 @@ namespace TTMulti.Forms
 
             CreateColorsTab();
             LoadColorsSettings();
+            
+            CreateCaptionColorUI();
+            LoadCaptionColorSettings();
             
             // Reorder tabs to match desired order:
             // 1. Multi-Mode Key Bindings (tabPage6)
@@ -798,7 +804,6 @@ namespace TTMulti.Forms
 
             int yPos = 25;
             int labelWidth = 250;
-            int buttonWidth = 100;
             int buttonHeight = 30;
             int spacing = 40;
 
@@ -1143,6 +1148,52 @@ namespace TTMulti.Forms
         }
 
 
+        private void CreateCaptionColorUI()
+        {
+            // Get the Other tab (tabPage2)
+            var otherTab = tabControl1.TabPages.Cast<TabPage>().FirstOrDefault(t => t.Text == "Other");
+            if (otherTab == null)
+                return;
+
+            // Create a new group box for caption color setting
+            var captionColorGroupBox = new GroupBox
+            {
+                Text = "Title Bar Color",
+                Location = new Point(4, 180), // Position after Keep-Alive group box
+                Size = new Size(734, 48),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            };
+
+            // Create checkbox
+            enableCaptionColorCheckBox = new CheckBox
+            {
+                Text = "Match title bar color to border color",
+                Location = new Point(10, 20),
+                Size = new Size(300, 20),
+                Checked = true
+            };
+            captionColorGroupBox.Controls.Add(enableCaptionColorCheckBox);
+
+            // Add to Other tab
+            otherTab.Controls.Add(captionColorGroupBox);
+        }
+
+        private void LoadCaptionColorSettings()
+        {
+            if (enableCaptionColorCheckBox == null)
+                return;
+
+            enableCaptionColorCheckBox.Checked = Properties.Settings.Default.enableCaptionColor;
+        }
+
+        private void SaveCaptionColorSettings()
+        {
+            if (enableCaptionColorCheckBox == null)
+                return;
+
+            Properties.Settings.Default.enableCaptionColor = enableCaptionColorCheckBox.Checked;
+        }
+
         private void LoadAutoFindSettings()
         {
             if (autoFindExecutablesTextBox == null)
@@ -1245,6 +1296,9 @@ namespace TTMulti.Forms
             
             // Save colors settings
             SaveColorsSettings();
+            
+            // Save caption color settings
+            SaveCaptionColorSettings();
             
             Properties.Settings.Default.Save();
             DialogResult = DialogResult.OK;

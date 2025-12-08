@@ -263,5 +263,8 @@
     <Setting Name="switchingRemovedColor" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">-16777216</Value>
     </Setting>
+    <Setting Name="enableCaptionColor" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
   </Settings>
 </SettingsFile>
