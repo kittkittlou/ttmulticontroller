@@ -150,8 +150,8 @@ namespace TTMulti
             int baseHeight = firstRegion.Height / Rows;
             
             Size windowSize = new Size(
-                baseWidth + (borderCompensation * 2), // Add to both left and right
-                baseHeight + borderCompensation       // Add to bottom (no top border)
+                baseWidth + (borderCompensation * 2 + 1), // Add to both left and right
+                baseHeight + borderCompensation + 1       // Add to bottom (no top border)
             );
 
             return (windowSize, allPositions.ToArray());
