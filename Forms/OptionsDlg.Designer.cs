@@ -82,6 +82,9 @@ namespace TTMulti.Forms
             this.multiclickKeyPicker = new TTMulti.Controls.KeyPicker();
             this.zeroPowerThrowKeyPicker = new TTMulti.Controls.KeyPicker();
             this.keyPicker2 = new TTMulti.Controls.KeyPicker();
+            this.modeHotkeyGlobalCheckBox = new System.Windows.Forms.CheckBox();
+            this.multiclickHotkeyGlobalCheckBox = new System.Windows.Forms.CheckBox();
+            this.zeroPowerHotkeyGlobalCheckBox = new System.Windows.Forms.CheckBox();
             this.tabControl1.SuspendLayout();
             this.tabPage6.SuspendLayout();
             this.tableLayoutPanel3.SuspendLayout();
@@ -393,6 +396,7 @@ namespace TTMulti.Forms
             // 
             // groupBox1
             // 
+            this.groupBox1.Controls.Add(this.modeHotkeyGlobalCheckBox);
             this.groupBox1.Controls.Add(this.label4);
             this.groupBox1.Controls.Add(this.keyPicker1);
             this.groupBox1.Dock = System.Windows.Forms.DockStyle.Top;
@@ -431,6 +435,7 @@ namespace TTMulti.Forms
             // 
             // multiclickGroupBox
             // 
+            this.multiclickGroupBox.Controls.Add(this.multiclickHotkeyGlobalCheckBox);
             this.multiclickGroupBox.Controls.Add(this.multiclickLabel);
             this.multiclickGroupBox.Controls.Add(this.multiclickKeyPicker);
             this.multiclickGroupBox.Dock = System.Windows.Forms.DockStyle.Top;
@@ -457,6 +462,7 @@ namespace TTMulti.Forms
             // 
             // zeroPowerThrowGroupBox
             // 
+            this.zeroPowerThrowGroupBox.Controls.Add(this.zeroPowerHotkeyGlobalCheckBox);
             this.zeroPowerThrowGroupBox.Controls.Add(this.zeroPowerThrowLabel);
             this.zeroPowerThrowGroupBox.Controls.Add(this.zeroPowerThrowKeyPicker);
             this.zeroPowerThrowGroupBox.Dock = System.Windows.Forms.DockStyle.Top;
@@ -683,6 +689,18 @@ namespace TTMulti.Forms
             this.keyPicker1.TabIndex = 12;
             this.keyPicker1.TabStop = false;
             // 
+            // modeHotkeyGlobalCheckBox
+            // 
+            this.modeHotkeyGlobalCheckBox.AutoSize = true;
+            this.modeHotkeyGlobalCheckBox.Checked = global::TTMulti.Properties.Settings.Default.modeHotkeyGlobal;
+            this.modeHotkeyGlobalCheckBox.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TTMulti.Properties.Settings.Default, "modeHotkeyGlobal", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.modeHotkeyGlobalCheckBox.Location = new System.Drawing.Point(205, 63);
+            this.modeHotkeyGlobalCheckBox.Name = "modeHotkeyGlobalCheckBox";
+            this.modeHotkeyGlobalCheckBox.Size = new System.Drawing.Size(69, 21);
+            this.modeHotkeyGlobalCheckBox.TabIndex = 14;
+            this.modeHotkeyGlobalCheckBox.Text = "Global";
+            this.modeHotkeyGlobalCheckBox.UseVisualStyleBackColor = true;
+            // 
             // multiclickKeyPicker
             // 
             this.multiclickKeyPicker.ChosenKey = System.Windows.Forms.Keys.LControlKey;
@@ -697,6 +715,18 @@ namespace TTMulti.Forms
             this.multiclickKeyPicker.TabStop = false;
             this.toolTip1.SetToolTip(this.multiclickKeyPicker, "This hotkey instantly sends a click to all windows at your cursor position. Works globally.");
             // 
+            // multiclickHotkeyGlobalCheckBox
+            // 
+            this.multiclickHotkeyGlobalCheckBox.AutoSize = true;
+            this.multiclickHotkeyGlobalCheckBox.Checked = global::TTMulti.Properties.Settings.Default.replicateMouseHotkeyGlobal;
+            this.multiclickHotkeyGlobalCheckBox.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TTMulti.Properties.Settings.Default, "replicateMouseHotkeyGlobal", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.multiclickHotkeyGlobalCheckBox.Location = new System.Drawing.Point(205, 63);
+            this.multiclickHotkeyGlobalCheckBox.Name = "multiclickHotkeyGlobalCheckBox";
+            this.multiclickHotkeyGlobalCheckBox.Size = new System.Drawing.Size(69, 21);
+            this.multiclickHotkeyGlobalCheckBox.TabIndex = 15;
+            this.multiclickHotkeyGlobalCheckBox.Text = "Global";
+            this.multiclickHotkeyGlobalCheckBox.UseVisualStyleBackColor = true;
+            // 
             // zeroPowerThrowKeyPicker
             // 
             this.zeroPowerThrowKeyPicker.ChosenKey = System.Windows.Forms.Keys.None;
@@ -710,6 +740,18 @@ namespace TTMulti.Forms
             this.zeroPowerThrowKeyPicker.TabIndex = 12;
             this.zeroPowerThrowKeyPicker.TabStop = false;
             this.toolTip1.SetToolTip(this.zeroPowerThrowKeyPicker, "This hotkey will send an instant tap of your Throw key (0% power throw).");
+            // 
+            // zeroPowerHotkeyGlobalCheckBox
+            // 
+            this.zeroPowerHotkeyGlobalCheckBox.AutoSize = true;
+            this.zeroPowerHotkeyGlobalCheckBox.Checked = global::TTMulti.Properties.Settings.Default.zeroPowerThrowHotkeyGlobal;
+            this.zeroPowerHotkeyGlobalCheckBox.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TTMulti.Properties.Settings.Default, "zeroPowerThrowHotkeyGlobal", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.zeroPowerHotkeyGlobalCheckBox.Location = new System.Drawing.Point(205, 63);
+            this.zeroPowerHotkeyGlobalCheckBox.Name = "zeroPowerHotkeyGlobalCheckBox";
+            this.zeroPowerHotkeyGlobalCheckBox.Size = new System.Drawing.Size(69, 21);
+            this.zeroPowerHotkeyGlobalCheckBox.TabIndex = 16;
+            this.zeroPowerHotkeyGlobalCheckBox.Text = "Global";
+            this.zeroPowerHotkeyGlobalCheckBox.UseVisualStyleBackColor = true;
             // 
             // keyPicker2
             // 
@@ -802,6 +844,9 @@ namespace TTMulti.Forms
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Label multiclickLabel;
         private System.Windows.Forms.Label zeroPowerThrowLabel;
+        private System.Windows.Forms.CheckBox modeHotkeyGlobalCheckBox;
+        private System.Windows.Forms.CheckBox multiclickHotkeyGlobalCheckBox;
+        private System.Windows.Forms.CheckBox zeroPowerHotkeyGlobalCheckBox;
         private TTMulti.Controls.KeyPicker zeroPowerThrowKeyPicker;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel2;
         private System.Windows.Forms.Label label7;

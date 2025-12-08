@@ -136,10 +136,8 @@ namespace TTMulti
                         return new ToontownController[] { };
                     case MulticontrollerMode.AllGroup:
                     case MulticontrollerMode.MirrorAll:
-                        return AllControllers;
                     case MulticontrollerMode.Focused:
-                        // In focused mode, return all windows (movement filtering happens in ProcessKeyboardInput)
-                        return AllControllersWithWindows;
+                        return AllControllers;
                 }
 
                 return new ToontownController[] { };
@@ -373,13 +371,6 @@ namespace TTMulti
                 if (_isActive != value)
                 {
                     _isActive = value;
-                    
-                    // If becoming inactive while in Focused mode, reset to MirrorAll
-                    if (!_isActive && CurrentMode == MulticontrollerMode.Focused)
-                    {
-                        _focusedController = null;
-                        _currentMode = MulticontrollerMode.MirrorAll; // Don't use CurrentMode setter to avoid extra events
-                    }
 
                     ActiveChanged?.Invoke(this, EventArgs.Empty);
                 }
@@ -387,7 +378,6 @@ namespace TTMulti
         }
 
         MulticontrollerMode _currentMode = MulticontrollerMode.Group;
-        ToontownController _focusedController = null;
 
         internal MulticontrollerMode CurrentMode
         {
@@ -398,38 +388,12 @@ namespace TTMulti
                 {
                     _currentMode = value;
                     
-                    // Clear focused controller when mode is explicitly changed (unless changing TO Focused mode)
-                    if (_focusedController != null && value != MulticontrollerMode.Focused)
-                    {
-                        _focusedController = null;
-                    }
-                    
                     ModeChanged?.Invoke(this, EventArgs.Empty);
                     ActiveControllersChanged?.Invoke(this, EventArgs.Empty);
                 }
             }
         }
         
-        /// <summary>
-        /// Set focus to a specific controller window (single window mode)
-        /// </summary>
-        internal void SetFocusedController(ToontownController controller)
-        {
-            if (_focusedController != controller)
-            {
-                _focusedController = controller;
-                
-                // Activate the multicontroller if not already active
-                if (!IsActive)
-                {
-                    ShouldActivate?.Invoke(this, EventArgs.Empty);
-                }
-                
-                // Set mode to Focused
-                CurrentMode = MulticontrollerMode.Focused;
-            }
-        }
-
         Dictionary<Keys, List<Keys>> leftKeys = new Dictionary<Keys, List<Keys>>(),
             rightKeys = new Dictionary<Keys, List<Keys>>();
         
@@ -838,14 +802,6 @@ namespace TTMulti
                     
                     if (IsActive)
                     {
-                        // If in focused mode, exit it and return to Mirror mode
-                        if (CurrentMode == MulticontrollerMode.Focused)
-                        {
-                            _focusedController = null;
-                            CurrentMode = MulticontrollerMode.MirrorAll;
-                            return true;
-                        }
-                        
                         List<MulticontrollerMode> availableModesToCycle = new List<MulticontrollerMode>();
 
                         if (Properties.Settings.Default.groupModeCycleWithModeHotkey)
@@ -1219,37 +1175,29 @@ namespace TTMulti
                         }
                         else
                         {
-                            // Multicontroller is NOT active: Focus the foreground window and activate multicontroller
-                            IntPtr foregroundWindow = Win32.GetForegroundWindow();
-                            var foregroundController = AllControllersWithWindows.FirstOrDefault(c => c.WindowHandle == foregroundWindow);
-                            
-                            if (foregroundController != null)
+                            // Multicontroller is NOT active: activate in MirrorAll mode and send throw to all windows
+                            ShouldActivate?.Invoke(this, EventArgs.Empty);
+                            CurrentMode = MulticontrollerMode.MirrorAll;
+
+                            foreach (var controller in AllControllersWithWindows)
                             {
-                                // Set this window as focused - this will activate the multicontroller in focused mode
-                                // In this mode: all inputs go to all windows EXCEPT movement keys which only go to focused window
-                                SetFocusedController(foregroundController);
+                                Keys throwKey = Keys.None;
                                 
-                                // Now send the throw to ALL windows
-                                foreach (var controller in AllControllersWithWindows)
+                                // Determine which throw key to use based on controller type
+                                if (controller.Type == ControllerType.Left && throwBinding.LeftToonKey != Keys.None)
                                 {
-                                    Keys throwKey = Keys.None;
-                                    
-                                    // Determine which throw key to use based on controller type
-                                    if (controller.Type == ControllerType.Left && throwBinding.LeftToonKey != Keys.None)
-                                    {
-                                        throwKey = throwBinding.LeftToonKey;
-                                    }
-                                    else if (controller.Type == ControllerType.Right && throwBinding.RightToonKey != Keys.None)
-                                    {
-                                        throwKey = throwBinding.RightToonKey;
-                                    }
-                                    
-                                    if (throwKey != Keys.None)
-                                    {
-                                        // Send both KEYDOWN and KEYUP immediately without delay for 0% power
-                                        controller.PostMessage(Win32.WM.KEYDOWN, (IntPtr)throwKey, IntPtr.Zero);
-                                        controller.PostMessage(Win32.WM.KEYUP, (IntPtr)throwKey, IntPtr.Zero);
-                                    }
+                                    throwKey = throwBinding.LeftToonKey;
+                                }
+                                else if (controller.Type == ControllerType.Right && throwBinding.RightToonKey != Keys.None)
+                                {
+                                    throwKey = throwBinding.RightToonKey;
+                                }
+                                
+                                if (throwKey != Keys.None)
+                                {
+                                    // Send both KEYDOWN and KEYUP immediately without delay for 0% power
+                                    controller.PostMessage(Win32.WM.KEYDOWN, (IntPtr)throwKey, IntPtr.Zero);
+                                    controller.PostMessage(Win32.WM.KEYUP, (IntPtr)throwKey, IntPtr.Zero);
                                 }
                             }
                         }
@@ -1349,28 +1297,6 @@ namespace TTMulti
                 IEnumerable<ToontownController> affectedControllers = ActiveControllers;
                 List<Keys> keysToPress = new List<Keys>();
                 
-                // In Focused mode, check if this is a directional movement key
-                if (CurrentMode == MulticontrollerMode.Focused && _focusedController != null)
-                {
-                    // Define ONLY directional movement key titles (NOT Jump)
-                    var directionalMovementTitles = new[] { "Forward", "Backward", "Left", "Right" };
-                    var movementBindings = Properties.SerializedSettings.Default.Bindings
-                        .Where(b => directionalMovementTitles.Contains(b.Title));
-                    
-                    foreach (var binding in movementBindings)
-                    {
-                        if (keysPressed == binding.Key)
-                        {
-                            // In Focused mode, send the Toontown Key directly (not the mapped left/right keys)
-                            _focusedController.PostMessage(msg, wParam, lParam);
-                            return true;
-                        }
-                    }
-                    
-                    // If not a directional movement key (including Jump and all other keys), send to ALL windows
-                    affectedControllers = AllControllersWithWindows;
-                }
-
                 if (CurrentMode == MulticontrollerMode.Group 
                     || CurrentMode == MulticontrollerMode.AllGroup)
                 {
@@ -1393,8 +1319,7 @@ namespace TTMulti
                     }
                 }
                 
-                if (CurrentMode == MulticontrollerMode.MirrorAll
-                    || CurrentMode == MulticontrollerMode.Focused)  // Focused mode acts like mirror for non-directional keys
+                if (CurrentMode == MulticontrollerMode.MirrorAll)
                 {
                     affectedControllers.ToList().ForEach(c => c.PostMessage(msg, wParam, lParam));
                 }
@@ -1593,6 +1518,8 @@ namespace TTMulti
             
             // Load and apply the last used preset
             var preset = LayoutPreset.LoadFromSettings(lastUsedPreset);
+
+            
             if (preset.Enabled)
             {
                 ApplyLayoutPreset(preset, lastUsedPreset);
@@ -1662,13 +1589,6 @@ namespace TTMulti
                     windowSize.Width,
                     windowSize.Height,
                     Win32.SetWindowPosFlags.ShowWindow | Win32.SetWindowPosFlags.DoNotActivate
-                );
-
-                // Do not round window corners.
-                Win32.SetWindowAttribute(
-                    controller.WindowHandle,
-                    Win32.WindowAttributeTypes.RoundedEdges,
-                    Win32.WindowAttributeValues.DWMWCP_DONOTROUND
                 );
             }
 

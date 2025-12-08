@@ -229,10 +229,11 @@ namespace TTMulti.Forms
                     // This ensures layout hotkeys continue to work
                     if (controller.IsActive || controller.AllControllersWithWindows.Any(c => c.IsWindowActive))
                     {
-                        if (controller.AllControllersWithWindows.Any(c => c.IsWindowActive))
-                        {
-                            RegisterHotkey();
-                        }
+                        RegisterHotkey();
+                    }
+                    // Layout hotkeys, auto-find, and layout priority only register when multicontroller window is active
+                    if (controller.IsActive)
+                    {
                         RegisterLayoutHotkeys();
                         RegisterAutoFindHotkey();
                         RegisterLayoutPriorityHotkey();
@@ -318,64 +319,96 @@ namespace TTMulti.Forms
             UnregisterAutoFindHotkey();
             UnregisterLayoutPriorityHotkey();
             
-            // Re-register hotkeys if multicontroller is active or windows are active
-            if (controller.IsActive || controller.AllControllersWithWindows.Any(c => c.IsWindowActive))
+            // Re-register all hotkeys based on current settings and state
+            RegisterHotkey();
+
+            // Re-register layout hotkeys, auto-find, and layout priority only if multicontroller window is active
+            if (controller.IsActive)
             {
-                if (controller.AllControllersWithWindows.Any(c => c.IsWindowActive))
-                {
-                    RegisterHotkey();
-                }
                 RegisterLayoutHotkeys();
                 RegisterAutoFindHotkey();
                 RegisterLayoutPriorityHotkey();
             }
         }
 
-        private bool RegisterHotkey()
+        private void RegisterHotkey()
         {
-            if (!hotkeyRegistered)
+            // Mode/Activate (ID 0)
+            bool modeGlobal = Properties.Settings.Default.modeHotkeyGlobal;
+            if (modeGlobal)
             {
-                hotkeyRegistered = Win32.RegisterHotKey(this.Handle, 0, Win32.KeyModifiers.None, (Keys)Properties.Settings.Default.modeKeyCode);
-                
-                // Register multiclick hotkey globally (ID 1)
-                if (Properties.Settings.Default.replicateMouseKeyCode != 0)
+                // Global: Always register (works from anywhere)
+                Win32.RegisterHotKey(this.Handle, 0, Win32.KeyModifiers.None, (Keys)Properties.Settings.Default.modeKeyCode);
+            }
+            else
+            {
+                // Non-global: Only register when multicontroller window is active (not merely a game window)
+                if (controller.IsActive)
                 {
-                    Win32.RegisterHotKey(this.Handle, 1, Win32.KeyModifiers.None, (Keys)Properties.Settings.Default.replicateMouseKeyCode);
+                    Win32.RegisterHotKey(this.Handle, 0, Win32.KeyModifiers.None, (Keys)Properties.Settings.Default.modeKeyCode);
                 }
-                
-                // Register zero power throw hotkey globally (ID 2)
-                if (Properties.Settings.Default.zeroPowerThrowKeyCode != 0)
-                {
-                    Win32.RegisterHotKey(this.Handle, 2, Win32.KeyModifiers.None, (Keys)Properties.Settings.Default.zeroPowerThrowKeyCode);
-                }
-
-                // Note: Auto-find hotkey (ID 7) is registered separately and always available
-                // Note: Layout hotkeys (IDs 3-6) are registered separately via RegisterLayoutHotkeys()
-                // Note: Layout priority toggle hotkey (ID 8) is registered separately via RegisterLayoutPriorityHotkey()
             }
 
-            return hotkeyRegistered;
+            // Instant Multi-Click (ID 1)
+            if (Properties.Settings.Default.replicateMouseKeyCode != 0)
+            {
+                bool multiGlobal = Properties.Settings.Default.replicateMouseHotkeyGlobal;
+                if (multiGlobal)
+                {
+                    // Global: Always register (works from anywhere)
+                    Win32.RegisterHotKey(this.Handle, 1, Win32.KeyModifiers.None, (Keys)Properties.Settings.Default.replicateMouseKeyCode);
+                }
+                else
+                {
+                    // Non-global: Only register when multicontroller window is active (not merely a game window)
+                    if (controller.IsActive)
+                    {
+                        Win32.RegisterHotKey(this.Handle, 1, Win32.KeyModifiers.None, (Keys)Properties.Settings.Default.replicateMouseKeyCode);
+                    }
+                }
+            }
+
+            // Zero Power Throw (ID 2)
+            if (Properties.Settings.Default.zeroPowerThrowKeyCode != 0)
+            {
+                bool zeroGlobal = Properties.Settings.Default.zeroPowerThrowHotkeyGlobal;
+                if (zeroGlobal)
+                {
+                    // Global: Always register (works from anywhere)
+                    Win32.RegisterHotKey(this.Handle, 2, Win32.KeyModifiers.None, (Keys)Properties.Settings.Default.zeroPowerThrowKeyCode);
+                }
+                else
+                {
+                    // Non-global: Only register when multicontroller window is active (not merely a game window)
+                    if (controller.IsActive)
+                    {
+                        Win32.RegisterHotKey(this.Handle, 2, Win32.KeyModifiers.None, (Keys)Properties.Settings.Default.zeroPowerThrowKeyCode);
+                    }
+                }
+            }
+            // Note: IDs 3-6 (layouts), 7 (auto-find), 8 (layout priority) handled separately
         }
 
         private void UnregisterHotkey()
         {
-            // Unregister mode switching hotkeys (IDs 0-2)
+            // Unregister mode/multiclick/zero power (IDs 0-2)
             Win32.UnregisterHotKey(this.Handle, 0);
             Win32.UnregisterHotKey(this.Handle, 1);
             Win32.UnregisterHotKey(this.Handle, 2);
-
-            hotkeyRegistered = false;
         }
 
         private void RegisterLayoutHotkeys()
         {
-            // Register layout preset hotkeys (IDs 3-6)
-            for (int i = 1; i <= 4; i++)
+            // Register layout preset hotkeys (IDs 3-6) - NEVER global, only when multicontroller window is active
+            if (controller.IsActive)
             {
-                var preset = LayoutPreset.LoadFromSettings(i);
-                if (preset.Enabled && preset.HotkeyCode != 0)
+                for (int i = 1; i <= 4; i++)
                 {
-                    Win32.RegisterHotKey(this.Handle, 2 + i, preset.HotkeyModifiers, (Keys)preset.HotkeyCode);
+                    var preset = LayoutPreset.LoadFromSettings(i);
+                    if (preset.Enabled && preset.HotkeyCode != 0)
+                    {
+                        Win32.RegisterHotKey(this.Handle, 2 + i, preset.HotkeyModifiers, (Keys)preset.HotkeyCode);
+                    }
                 }
             }
         }
@@ -391,8 +424,8 @@ namespace TTMulti.Forms
 
         private void RegisterAutoFindHotkey()
         {
-            // Register auto-find windows hotkey (ID 7) - only when multicontroller is active
-            if (Properties.Settings.Default.autoFindWindowsKeyCode != 0)
+            // Register auto-find windows hotkey (ID 7) - NEVER global, only when multicontroller window is active
+            if (Properties.Settings.Default.autoFindWindowsKeyCode != 0 && controller.IsActive)
             {
                 bool success = Win32.RegisterHotKey(this.Handle, 7, (Win32.KeyModifiers)Properties.Settings.Default.autoFindWindowsKeyModifiers, (Keys)Properties.Settings.Default.autoFindWindowsKeyCode);
                 if (!success)
@@ -413,8 +446,8 @@ namespace TTMulti.Forms
 
         private void RegisterLayoutPriorityHotkey()
         {
-            // Register layout priority toggle hotkey (ID 8) - only when multicontroller is active
-            if (Properties.Settings.Default.layoutPriorityToggleKeyCode != 0)
+            // Register layout priority toggle hotkey (ID 8) - NEVER global, only when multicontroller window is active
+            if (Properties.Settings.Default.layoutPriorityToggleKeyCode != 0 && controller.IsActive)
             {
                 bool success = Win32.RegisterHotKey(this.Handle, 8, (Win32.KeyModifiers)Properties.Settings.Default.layoutPriorityToggleKeyModifiers, (Keys)Properties.Settings.Default.layoutPriorityToggleKeyCode);
                 if (!success)
@@ -525,19 +558,34 @@ namespace TTMulti.Forms
 
         private void Controller_AllWindowsInactive(object sender, EventArgs e)
         {
-            // Only unregister hotkeys if multicontroller window is also inactive
-            // If multicontroller window is active, keep hotkeys registered
-            if (!controller.IsActive)
-        {
+            // Unregister all hotkeys first
             UnregisterHotkey();
-                // Unregister layout hotkeys when all windows are inactive
-                UnregisterLayoutHotkeys();
-                // Unregister auto-find hotkey when all windows are inactive
-                UnregisterAutoFindHotkey();
-            }
-            else
+            UnregisterLayoutHotkeys();
+            UnregisterAutoFindHotkey();
+            UnregisterLayoutPriorityHotkey();
+            
+            // Re-register only global hotkeys (non-global ones will be re-registered when multicontroller window becomes active)
+            // Mode/Activate (ID 0)
+            if (Properties.Settings.Default.modeHotkeyGlobal)
             {
-                // Multicontroller window is still active, ensure hotkeys are registered
+                Win32.RegisterHotKey(this.Handle, 0, Win32.KeyModifiers.None, (Keys)Properties.Settings.Default.modeKeyCode);
+            }
+            
+            // Instant Multi-Click (ID 1)
+            if (Properties.Settings.Default.replicateMouseKeyCode != 0 && Properties.Settings.Default.replicateMouseHotkeyGlobal)
+            {
+                Win32.RegisterHotKey(this.Handle, 1, Win32.KeyModifiers.None, (Keys)Properties.Settings.Default.replicateMouseKeyCode);
+            }
+            
+            // Zero Power Throw (ID 2)
+            if (Properties.Settings.Default.zeroPowerThrowKeyCode != 0 && Properties.Settings.Default.zeroPowerThrowHotkeyGlobal)
+            {
+                Win32.RegisterHotKey(this.Handle, 2, Win32.KeyModifiers.None, (Keys)Properties.Settings.Default.zeroPowerThrowKeyCode);
+            }
+            
+            // Layout hotkeys, auto-find, and layout priority are NEVER global - only register when multicontroller window is active
+            if (controller.IsActive)
+            {
                 RegisterLayoutHotkeys();
                 RegisterAutoFindHotkey();
                 RegisterLayoutPriorityHotkey();
@@ -546,13 +594,15 @@ namespace TTMulti.Forms
 
         private void Controller_WindowActivated(object sender, EventArgs e)
         {
+            // Re-register all hotkeys (both global and non-global) when a Toontown window becomes active
             RegisterHotkey();
-            // Also register layout hotkeys when a Toontown window is active
-            RegisterLayoutHotkeys();
-            // Register auto-find hotkey when a Toontown window is active
-            RegisterAutoFindHotkey();
-            // Register layout priority toggle hotkey when a Toontown window is active
-            RegisterLayoutPriorityHotkey();
+            // Also register layout hotkeys when multicontroller window is active
+            if (controller.IsActive)
+            {
+                RegisterLayoutHotkeys();
+                RegisterAutoFindHotkey();
+                RegisterLayoutPriorityHotkey();
+            }
         }
 
         private void MainWnd_FormClosing(object sender, FormClosingEventArgs e)
@@ -573,10 +623,12 @@ namespace TTMulti.Forms
             // Re-register hotkeys if multicontroller is active (groups may have been added/removed)
             if (controller.IsActive || controller.AllControllersWithWindows.Any(c => c.IsWindowActive))
             {
-                if (controller.AllControllersWithWindows.Any(c => c.IsWindowActive))
-                {
-                    RegisterHotkey();
-                }
+                RegisterHotkey();
+            }
+            
+            // Layout hotkeys, auto-find, and layout priority only register when multicontroller window is active
+            if (controller.IsActive)
+            {
                 RegisterLayoutHotkeys();
                 RegisterAutoFindHotkey();
                 RegisterLayoutPriorityHotkey();
@@ -681,12 +733,33 @@ namespace TTMulti.Forms
         private void MulticontrollerWnd_Deactivate(object sender, EventArgs e)
         {
             controller.IsActive = false;
-            // Unregister layout hotkeys when multicontroller window is inactive
+            
+            // Unregister all hotkeys first
+            UnregisterHotkey();
             UnregisterLayoutHotkeys();
-            // Unregister auto-find hotkey when multicontroller window is inactive
             UnregisterAutoFindHotkey();
-            // Unregister layout priority toggle hotkey when multicontroller window is inactive
             UnregisterLayoutPriorityHotkey();
+            
+            // Re-register only global hotkeys (non-global ones will be re-registered when window becomes active or Toontown window becomes active)
+            // Mode/Activate (ID 0)
+            if (Properties.Settings.Default.modeHotkeyGlobal)
+            {
+                Win32.RegisterHotKey(this.Handle, 0, Win32.KeyModifiers.None, (Keys)Properties.Settings.Default.modeKeyCode);
+            }
+            
+            // Instant Multi-Click (ID 1)
+            if (Properties.Settings.Default.replicateMouseKeyCode != 0 && Properties.Settings.Default.replicateMouseHotkeyGlobal)
+            {
+                Win32.RegisterHotKey(this.Handle, 1, Win32.KeyModifiers.None, (Keys)Properties.Settings.Default.replicateMouseKeyCode);
+            }
+            
+            // Zero Power Throw (ID 2)
+            if (Properties.Settings.Default.zeroPowerThrowKeyCode != 0 && Properties.Settings.Default.zeroPowerThrowHotkeyGlobal)
+            {
+                Win32.RegisterHotKey(this.Handle, 2, Win32.KeyModifiers.None, (Keys)Properties.Settings.Default.zeroPowerThrowKeyCode);
+            }
+            
+            // Layout hotkeys, auto-find, and layout priority are NEVER global - they stay unregistered when multicontroller window is inactive
         }
     }
 }

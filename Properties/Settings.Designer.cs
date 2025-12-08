@@ -622,6 +622,42 @@ namespace TTMulti.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool modeHotkeyGlobal {
+            get {
+                return ((bool)(this["modeHotkeyGlobal"]));
+            }
+            set {
+                this["modeHotkeyGlobal"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool replicateMouseHotkeyGlobal {
+            get {
+                return ((bool)(this["replicateMouseHotkeyGlobal"]));
+            }
+            set {
+                this["replicateMouseHotkeyGlobal"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool zeroPowerThrowHotkeyGlobal {
+            get {
+                return ((bool)(this["zeroPowerThrowHotkeyGlobal"]));
+            }
+            set {
+                this["zeroPowerThrowHotkeyGlobal"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
         public bool layoutPreset1Enabled {
             get {
