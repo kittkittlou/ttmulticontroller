@@ -299,8 +299,8 @@ namespace TTMulti.Forms
             if (SwitchingMode && SwitchingNumber > 0)
             {
                 // Draw large number in center of window
-                // Font size is half of window height
-                float fontSize = this.ClientRectangle.Height / 2f;
+                // Font size is slightly larger than half of window height
+                float fontSize = this.ClientRectangle.Height / 1.7f;
                 using (Font switchingModeFont = new Font(FontFamily.GenericSansSerif, fontSize, FontStyle.Bold))
                 {
                     e.Graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
@@ -309,25 +309,29 @@ namespace TTMulti.Forms
                     float x = (this.ClientRectangle.Width - textSize.Width) / 2;
                     float y = (this.ClientRectangle.Height - textSize.Height) / 2;
                     
-                    // Text color matches border color: Yellow for selected, Black for marked for removal, Orange for switched, Red for normal
+                    // Text color matches border color using Colors properties
                     Brush textBrush;
                     if (SwitchingSelected)
                     {
-                        textBrush = Brushes.Yellow;
+                        textBrush = new SolidBrush(Colors.SwitchingSelected);
                     }
                     else if (SwitchingMarkedForRemoval)
                     {
-                        textBrush = Brushes.Black;
+                        textBrush = new SolidBrush(Colors.SwitchingMarkedForRemoval);
                     }
                     else if (SwitchingSwitched)
                     {
-                        textBrush = Brushes.Orange;
+                        textBrush = new SolidBrush(Colors.SwitchingSwitched);
                     }
                     else
                     {
-                        textBrush = Brushes.Red;
+                        textBrush = new SolidBrush(Colors.SwitchingMode);
                     }
-                    e.Graphics.DrawString(numberText, switchingModeFont, textBrush, x, y);
+                    
+                    using (textBrush)
+                    {
+                        e.Graphics.DrawString(numberText, switchingModeFont, textBrush, x, y);
+                    }
                 }
             }
             else if (ShowGroupNumber)
