@@ -95,7 +95,7 @@ namespace TTMulti
 
             // Windows 10+ adds invisible resize borders (~7px on each side)
             // We need to compensate for these to achieve perfect tiling
-            const int borderCompensation = 8;
+            const int borderCompensation = 7;
 
             List<Point> allPositions = new List<Point>();
             int windowsPlaced = 0;
