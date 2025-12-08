@@ -544,16 +544,20 @@ namespace TTMulti
             }
             
             // Apply the last used layout preset when exiting switching mode
-            int lastUsedPreset = Properties.Settings.Default.lastUsedLayoutPreset;
-            if (lastUsedPreset < 1 || lastUsedPreset > 4)
+            // Only apply if there are 2 or more pending switches (orange windows)
+            if (_switchedControllers.Count >= 2)
             {
-                lastUsedPreset = 1;
-            }
-            
-            var preset = LayoutPreset.LoadFromSettings(lastUsedPreset);
-            if (preset.Enabled)
-            {
-                ApplyLayoutPreset(preset, lastUsedPreset);
+                int lastUsedPreset = Properties.Settings.Default.lastUsedLayoutPreset;
+                if (lastUsedPreset < 1 || lastUsedPreset > 4)
+                {
+                    lastUsedPreset = 1;
+                }
+                
+                var preset = LayoutPreset.LoadFromSettings(lastUsedPreset);
+                if (preset.Enabled)
+                {
+                    ApplyLayoutPreset(preset, lastUsedPreset);
+                }
             }
             
             // Trigger refresh so border windows are hidden for inactive controllers (if not showing all borders)
