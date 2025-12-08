@@ -1356,6 +1356,13 @@ namespace TTMulti.Forms
 
         private void CreateLayoutPresetsUI()
         {
+            // Check if layout tab page already exists (to avoid recreating it)
+            if (layoutTabPage != null && tabControl1.TabPages.Contains(layoutTabPage))
+            {
+                // Tab already exists, don't recreate it
+                return;
+            }
+
             // Create a new tab page for Layout Presets
             layoutTabPage = new TabPage("Layout Presets");
             layoutTabPage.AutoScroll = true;
@@ -1432,9 +1439,19 @@ namespace TTMulti.Forms
             presetControls.Add(newPresetControls);
             layoutTabPage.Controls.Add(newPresetControls.GroupBox);
             
+            // Ensure the new preset is visible
+            newPresetControls.GroupBox.Visible = true;
+            newPresetControls.GroupBox.BringToFront();
+            
             // Reposition "Add Preset" button
             yPosition += newPresetControls.GroupBox.Height + 10;
             addPresetButton.Location = new Point(10, yPosition);
+            
+            // Scroll to show the new preset if needed
+            if (layoutTabPage.AutoScroll)
+            {
+                layoutTabPage.ScrollControlIntoView(newPresetControls.GroupBox);
+            }
             
             // Disable "Add Preset" button if we've reached the limit
             if (presetControls.Count >= 4)
