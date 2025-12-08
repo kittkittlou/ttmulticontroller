@@ -1636,43 +1636,129 @@ namespace TTMulti
             if (windowSize.IsEmpty || positions.Length == 0)
                 return;
 
-            // Apply layout to all windows
+            // Collect windows that need to be moved/resized (skip windows already in correct position)
+            var windowsToMove = new List<(ToontownController controller, Point position)>();
+            const int positionTolerance = 0; // Allow 2 pixels tolerance for position
+            const int sizeTolerance = 0; // Allow 2 pixels tolerance for size
+
             for (int i = 0; i < controllersWithWindows.Count && i < positions.Length; i++)
             {
                 var controller = controllersWithWindows[i];
-                Point position = positions[i];
+                Point targetPosition = positions[i];
 
-                // Use SetWindowPos to move and resize the window
-                Win32.SetWindowPos(
-                    controller.WindowHandle,
-                    IntPtr.Zero,
-                    position.X,
-                    position.Y,
-                    windowSize.Width,
-                    windowSize.Height,
-                    Win32.SetWindowPosFlags.ShowWindow | Win32.SetWindowPosFlags.DoNotActivate
-                );
-                
-                // Do not round window corners.
-                Win32.SetWindowAttribute(
-                    controller.WindowHandle,
-                    Win32.WindowAttributeTypes.RoundedEdges,
-                    Win32.WindowAttributeValues.DWMWCP_DONOTROUND
-                );
-                
-                // Do not show drop shadows.
-                Win32.SetWindowAttribute(
-                    controller.WindowHandle,
-                    Win32.WindowAttributeTypes.DropShadow,
-                    Win32.WindowAttributeValues.DWMWA_NCRENDERING_POLICY
-                );
-                
-                // Make the window borders opaque to prevent pixel bleed from the desktop.
-                Win32.SetWindowAttribute(
-                    controller.WindowHandle,
-                    Win32.WindowAttributeTypes.WindowBorderColor,
-                    0x000000
-                );
+                // Get current window position and size
+                Win32.RECT currentRect;
+                if (Win32.GetWindowRect(controller.WindowHandle, out currentRect))
+                {
+                    int currentX = currentRect.Left;
+                    int currentY = currentRect.Top;
+                    int currentWidth = currentRect.Right - currentRect.Left;
+                    int currentHeight = currentRect.Bottom - currentRect.Top;
+
+                    // Check if window is already in the correct position and size
+                    bool positionMatches = Math.Abs(currentX - targetPosition.X) <= positionTolerance &&
+                                          Math.Abs(currentY - targetPosition.Y) <= positionTolerance;
+                    bool sizeMatches = Math.Abs(currentWidth - windowSize.Width) <= sizeTolerance &&
+                                      Math.Abs(currentHeight - windowSize.Height) <= sizeTolerance;
+
+                    // Only add to move list if position or size doesn't match
+                    if (!positionMatches || !sizeMatches)
+                    {
+                        windowsToMove.Add((controller, targetPosition));
+                    }
+                }
+                else
+                {
+                    // If we can't get the current position, assume it needs to be moved
+                    windowsToMove.Add((controller, targetPosition));
+                }
+            }
+
+            // If no windows need to be moved, skip the layout operation
+            if (windowsToMove.Count == 0)
+                return;
+
+            // Batch all window position/size operations for better performance
+            // BeginDeferWindowPos allows Windows to optimize multiple window operations
+            IntPtr hdwp = Win32.BeginDeferWindowPos(windowsToMove.Count);
+            
+            if (hdwp != IntPtr.Zero)
+            {
+                // Apply layout only to windows that need to be moved
+                foreach (var (controller, position) in windowsToMove)
+                {
+                    // Defer the SetWindowPos operation (batched for performance)
+                    hdwp = Win32.DeferWindowPos(
+                        hdwp,
+                        controller.WindowHandle,
+                        IntPtr.Zero,
+                        position.X,
+                        position.Y,
+                        windowSize.Width,
+                        windowSize.Height,
+                        Win32.SetWindowPosFlags.ShowWindow | Win32.SetWindowPosFlags.DoNotActivate
+                    );
+                    
+                    // Set window attributes (these are fast, can be done individually)
+                    // Do not round window corners.
+                    Win32.SetWindowAttribute(
+                        controller.WindowHandle,
+                        Win32.WindowAttributeTypes.RoundedEdges,
+                        Win32.WindowAttributeValues.DWMWCP_DONOTROUND
+                    );
+                    
+                    // Do not show drop shadows.
+                    Win32.SetWindowAttribute(
+                        controller.WindowHandle,
+                        Win32.WindowAttributeTypes.DropShadow,
+                        Win32.WindowAttributeValues.DWMWA_NCRENDERING_POLICY
+                    );
+                    
+                    // Make the window borders opaque to prevent pixel bleed from the desktop.
+                    Win32.SetWindowAttribute(
+                        controller.WindowHandle,
+                        Win32.WindowAttributeTypes.WindowBorderColor,
+                        0x000000
+                    );
+                }
+
+                // Execute all batched window operations at once (much faster than individual calls)
+                Win32.EndDeferWindowPos(hdwp);
+            }
+            else
+            {
+                // Fallback to individual SetWindowPos calls if batching fails
+                foreach (var (controller, position) in windowsToMove)
+                {
+                    Win32.SetWindowPos(
+                        controller.WindowHandle,
+                        IntPtr.Zero,
+                        position.X,
+                        position.Y,
+                        windowSize.Width,
+                        windowSize.Height,
+                        Win32.SetWindowPosFlags.ShowWindow | Win32.SetWindowPosFlags.DoNotActivate
+                    );
+                    
+                    // Set window attributes
+                    Win32.SetWindowAttribute(
+                        controller.WindowHandle,
+                        Win32.WindowAttributeTypes.RoundedEdges,
+                        Win32.WindowAttributeValues.DWMWCP_DONOTROUND
+                    );
+                    
+                    Win32.SetWindowAttribute(
+                        controller.WindowHandle,
+                        Win32.WindowAttributeTypes.DropShadow,
+                        Win32.WindowAttributeValues.DWMWA_NCRENDERING_POLICY
+                    );
+                    
+                    Win32.SetWindowAttribute(
+                        controller.WindowHandle,
+                        Win32.WindowAttributeTypes.WindowBorderColor,
+                        0x000000
+                    );
+                }
             }
 
             // Clear switched controllers list since layout has been applied
@@ -1680,10 +1766,10 @@ namespace TTMulti
 
             // Force update all border positions after moving windows
             // WindowWatcher will eventually update them, but this ensures immediate correctness
-            // Process window messages to allow SetWindowPos to complete
+            // Single DoEvents call is sufficient after batched operations
             System.Windows.Forms.Application.DoEvents();
-            System.Threading.Thread.Sleep(10); // Small delay to ensure windows have moved
-            System.Windows.Forms.Application.DoEvents();
+            
+            // Update border positions (these are relatively fast operations)
             foreach (var controller in controllersWithWindows)
             {
                 controller.UpdateBorderPosition();
