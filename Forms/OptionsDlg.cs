@@ -35,6 +35,31 @@ namespace TTMulti.Forms
             public NumericUpDown WidthNumeric;
             public NumericUpDown HeightNumeric;
             public Button RemoveButton;
+            public ComboBox DisplayComboBox;
+            public RadioButton ManualRadioButton;
+            public RadioButton DisplayRadioButton;
+            private bool isUpdatingFromDisplay = false;
+            
+            public bool IsManualMode => ManualRadioButton?.Checked ?? true;
+            
+            public void UpdateFromDisplay(Screen screen)
+            {
+                if (isUpdatingFromDisplay) return;
+                isUpdatingFromDisplay = true;
+                try
+                {
+                    // Use WorkingArea instead of Bounds to exclude taskbar
+                    Rectangle workingArea = screen.WorkingArea;
+                    XNumeric.Value = workingArea.X;
+                    YNumeric.Value = workingArea.Y;
+                    WidthNumeric.Value = workingArea.Width;
+                    HeightNumeric.Value = workingArea.Height;
+                }
+                finally
+                {
+                    isUpdatingFromDisplay = false;
+                }
+            }
         }
 
         // Helper class to hold controls for one preset
@@ -539,13 +564,16 @@ namespace TTMulti.Forms
             {
                 foreach (var region in preset.Regions)
                 {
-                    AddRegionControls(controls, region);
+                    AddRegionControls(controls, region, region.Mode, region.DisplayIndex);
                 }
             }
             else
             {
                 AddRegionControls(controls, new LayoutRegion());
             }
+            
+            // Update panel and groupbox sizes after loading all regions
+            UpdateRegionPanelSize(controls);
             
             controls.HotkeyPicker.ChosenKey = (Keys)preset.HotkeyCode;
             controls.AltCheckBox.Checked = (preset.HotkeyModifiers & Win32.KeyModifiers.Alt) != 0;
@@ -598,12 +626,20 @@ namespace TTMulti.Forms
             var regions = new List<LayoutRegion>();
             foreach (var regionControls in controls.RegionControlsList)
             {
-                regions.Add(new LayoutRegion(
+                var region = new LayoutRegion(
                     (int)regionControls.XNumeric.Value,
                     (int)regionControls.YNumeric.Value,
                     (int)regionControls.WidthNumeric.Value,
                     (int)regionControls.HeightNumeric.Value
-                ));
+                );
+                
+                // Save mode and display index
+                region.Mode = regionControls.IsManualMode ? LayoutRegionMode.Manual : LayoutRegionMode.Display;
+                region.DisplayIndex = regionControls.DisplayComboBox != null && regionControls.DisplayComboBox.SelectedIndex >= 0
+                    ? regionControls.DisplayComboBox.SelectedIndex
+                    : -1;
+                
+                regions.Add(region);
             }
             
             var preset = new LayoutPreset
@@ -787,7 +823,7 @@ namespace TTMulti.Forms
             {
                 Text = $"Preset {presetNumber}",
                 Location = new Point(10, yPos),
-                Size = new Size(730, 200),
+                Size = new Size(730, 230),
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
 
@@ -846,12 +882,12 @@ namespace TTMulti.Forms
             Label lblRegions = new Label { Text = "Regions:", Location = new Point(10, 80), Size = new Size(90, 20) };
             controls.GroupBox.Controls.Add(lblRegions);
 
-            // Panel to hold region controls (scrollable)
+            // Panel to hold region controls (auto-sizing, no scroll)
             controls.RegionsPanel = new Panel
             {
                 Location = new Point(10, 105),
                 Size = new Size(710, 60),
-                AutoScroll = true,
+                AutoScroll = false,
                 BorderStyle = BorderStyle.None
             };
             controls.GroupBox.Controls.Add(controls.RegionsPanel);
@@ -954,72 +990,76 @@ namespace TTMulti.Forms
             }
         }
 
-        private void AddRegionControls(LayoutPresetControls presetControls, LayoutRegion region)
+        private void AddRegionControls(LayoutPresetControls presetControls, LayoutRegion region, LayoutRegionMode? mode = null, int displayIndex = -1)
         {
             var regionControls = new RegionControls();
-            int yOffset = presetControls.RegionControlsList.Count * 30;
+            int yOffset = presetControls.RegionControlsList.Count * 60; // Increased height for two rows
 
             regionControls.Panel = new Panel
             {
                 Location = new Point(0, yOffset),
-                Size = new Size(680, 28),
+                Size = new Size(680, 58),
                 BorderStyle = BorderStyle.None
             };
 
+            // First row: Mode selection and display selection
             Label lblNum = new Label { Text = $"#{presetControls.RegionControlsList.Count + 1}:", Location = new Point(5, 5), Size = new Size(25, 20) };
             regionControls.Panel.Controls.Add(lblNum);
 
-            Label lblX = new Label { Text = "X:", Location = new Point(35, 5), Size = new Size(20, 20) };
-            regionControls.Panel.Controls.Add(lblX);
+            // Determine initial mode (use provided mode, or default to Manual)
+            bool isManualMode = mode == null || mode == LayoutRegionMode.Manual;
 
-            regionControls.XNumeric = new NumericUpDown
+            // Manual/Display mode radio buttons
+            regionControls.ManualRadioButton = new RadioButton
             {
-                Location = new Point(55, 3),
-                Size = new Size(70, 20),
-                Minimum = -10000,
-                Maximum = 10000,
-                Value = region.X
+                Text = "Manual",
+                Location = new Point(35, 5),
+                Size = new Size(60, 20),
+                Checked = isManualMode
             };
-            regionControls.Panel.Controls.Add(regionControls.XNumeric);
+            regionControls.ManualRadioButton.CheckedChanged += (s, e) => UpdateRegionMode(regionControls);
+            regionControls.Panel.Controls.Add(regionControls.ManualRadioButton);
 
-            Label lblY = new Label { Text = "Y:", Location = new Point(130, 5), Size = new Size(20, 20) };
-            regionControls.Panel.Controls.Add(lblY);
-
-            regionControls.YNumeric = new NumericUpDown
+            regionControls.DisplayRadioButton = new RadioButton
             {
-                Location = new Point(150, 3),
-                Size = new Size(70, 20),
-                Minimum = -10000,
-                Maximum = 10000,
-                Value = region.Y
+                Text = "Select Display",
+                Location = new Point(100, 5),
+                Size = new Size(100, 20),
+                Checked = !isManualMode
             };
-            regionControls.Panel.Controls.Add(regionControls.YNumeric);
+            regionControls.DisplayRadioButton.CheckedChanged += (s, e) => UpdateRegionMode(regionControls);
+            regionControls.Panel.Controls.Add(regionControls.DisplayRadioButton);
 
-            Label lblW = new Label { Text = "W:", Location = new Point(225, 5), Size = new Size(25, 20) };
-            regionControls.Panel.Controls.Add(lblW);
-
-            regionControls.WidthNumeric = new NumericUpDown
+            // Display selection ComboBox
+            regionControls.DisplayComboBox = new ComboBox
             {
-                Location = new Point(250, 3),
-                Size = new Size(80, 20),
-                Minimum = 100,
-                Maximum = 10000,
-                Value = region.Width
+                Location = new Point(205, 3),
+                Size = new Size(200, 21),
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Enabled = false
             };
-            regionControls.Panel.Controls.Add(regionControls.WidthNumeric);
-
-            Label lblH = new Label { Text = "H:", Location = new Point(335, 5), Size = new Size(25, 20) };
-            regionControls.Panel.Controls.Add(lblH);
-
-            regionControls.HeightNumeric = new NumericUpDown
+            
+            // Populate displays
+            var screens = Screen.AllScreens;
+            for (int i = 0; i < screens.Length; i++)
             {
-                Location = new Point(360, 3),
-                Size = new Size(80, 20),
-                Minimum = 100,
-                Maximum = 10000,
-                Value = region.Height
+                var screen = screens[i];
+                Rectangle workingArea = screen.WorkingArea;
+                string displayName = $"Display {i + 1} ({workingArea.Width}x{workingArea.Height})";
+                if (screen.Primary)
+                    displayName += " [Primary]";
+                regionControls.DisplayComboBox.Items.Add(displayName);
+            }
+            
+            regionControls.DisplayComboBox.SelectedIndexChanged += (s, e) =>
+            {
+                if (regionControls.DisplayComboBox.SelectedIndex >= 0 && !regionControls.IsManualMode)
+                {
+                    var selectedScreen = screens[regionControls.DisplayComboBox.SelectedIndex];
+                    regionControls.UpdateFromDisplay(selectedScreen);
+                }
             };
-            regionControls.Panel.Controls.Add(regionControls.HeightNumeric);
+            regionControls.Panel.Controls.Add(regionControls.DisplayComboBox);
 
             // Remove button (only show if more than 1 region)
             regionControls.RemoveButton = new Button
@@ -1031,10 +1071,103 @@ namespace TTMulti.Forms
             regionControls.RemoveButton.Click += (s, e) => RemoveRegionControls(presetControls, regionControls);
             regionControls.Panel.Controls.Add(regionControls.RemoveButton);
 
+            // Second row: Manual input fields
+            Label lblX = new Label { Text = "X:", Location = new Point(35, 32), Size = new Size(20, 20) };
+            regionControls.Panel.Controls.Add(lblX);
+
+            regionControls.XNumeric = new NumericUpDown
+            {
+                Location = new Point(55, 30),
+                Size = new Size(70, 20),
+                Minimum = -10000,
+                Maximum = 10000,
+                Value = region.X
+            };
+            regionControls.Panel.Controls.Add(regionControls.XNumeric);
+
+            Label lblY = new Label { Text = "Y:", Location = new Point(130, 32), Size = new Size(20, 20) };
+            regionControls.Panel.Controls.Add(lblY);
+
+            regionControls.YNumeric = new NumericUpDown
+            {
+                Location = new Point(150, 30),
+                Size = new Size(70, 20),
+                Minimum = -10000,
+                Maximum = 10000,
+                Value = region.Y
+            };
+            regionControls.Panel.Controls.Add(regionControls.YNumeric);
+
+            Label lblW = new Label { Text = "W:", Location = new Point(225, 32), Size = new Size(25, 20) };
+            regionControls.Panel.Controls.Add(lblW);
+
+            regionControls.WidthNumeric = new NumericUpDown
+            {
+                Location = new Point(250, 30),
+                Size = new Size(80, 20),
+                Minimum = 100,
+                Maximum = 10000,
+                Value = region.Width
+            };
+            regionControls.Panel.Controls.Add(regionControls.WidthNumeric);
+
+            Label lblH = new Label { Text = "H:", Location = new Point(335, 32), Size = new Size(25, 20) };
+            regionControls.Panel.Controls.Add(lblH);
+
+            regionControls.HeightNumeric = new NumericUpDown
+            {
+                Location = new Point(360, 30),
+                Size = new Size(80, 20),
+                Minimum = 100,
+                Maximum = 10000,
+                Value = region.Height
+            };
+            regionControls.Panel.Controls.Add(regionControls.HeightNumeric);
+
             presetControls.RegionControlsList.Add(regionControls);
             presetControls.RegionsPanel.Controls.Add(regionControls.Panel);
 
+            // Update mode to set initial enabled/disabled state
+            UpdateRegionMode(regionControls);
+            
+            // Set selected display after UpdateRegionMode (so combo box is enabled if Display mode)
+            // Only set if we have a valid saved display index
+            if (displayIndex >= 0 && displayIndex < screens.Length)
+            {
+                regionControls.DisplayComboBox.SelectedIndex = displayIndex;
+            }
+            
             UpdateRegionButtons(presetControls);
+            
+            // Update panel and groupbox sizes to fit all regions
+            UpdateRegionPanelSize(presetControls);
+        }
+
+        private void UpdateRegionMode(RegionControls regionControls)
+        {
+            bool isManual = regionControls.IsManualMode;
+            if (regionControls.DisplayComboBox != null)
+            {
+                regionControls.DisplayComboBox.Enabled = !isManual;
+            }
+            
+            // Enable/disable numeric controls based on mode
+            if (regionControls.XNumeric != null)
+                regionControls.XNumeric.Enabled = isManual;
+            if (regionControls.YNumeric != null)
+                regionControls.YNumeric.Enabled = isManual;
+            if (regionControls.WidthNumeric != null)
+                regionControls.WidthNumeric.Enabled = isManual;
+            if (regionControls.HeightNumeric != null)
+                regionControls.HeightNumeric.Enabled = isManual;
+            
+            // If switching to display mode and no display is selected, select the first one
+            if (!isManual && regionControls.DisplayComboBox != null && 
+                regionControls.DisplayComboBox.SelectedIndex < 0 && 
+                regionControls.DisplayComboBox.Items.Count > 0)
+            {
+                regionControls.DisplayComboBox.SelectedIndex = 0;
+            }
         }
 
         private void RemoveRegionControls(LayoutPresetControls presetControls, RegionControls regionToRemove)
@@ -1049,13 +1182,78 @@ namespace TTMulti.Forms
             for (int i = 0; i < presetControls.RegionControlsList.Count; i++)
             {
                 var regionControls = presetControls.RegionControlsList[i];
-                regionControls.Panel.Location = new Point(0, i * 30);
+                regionControls.Panel.Location = new Point(0, i * 60); // Updated height
                 
                 // Update region number label
                 ((Label)regionControls.Panel.Controls[0]).Text = $"#{i + 1}:";
             }
 
             UpdateRegionButtons(presetControls);
+            
+            // Update panel and groupbox sizes to fit all regions
+            UpdateRegionPanelSize(presetControls);
+        }
+
+        private void UpdateRegionPanelSize(LayoutPresetControls presetControls)
+        {
+            // Calculate required height for regions panel (60 pixels per region)
+            int regionHeight = 60;
+            int regionsPanelHeight = presetControls.RegionControlsList.Count * regionHeight;
+            
+            // Update RegionsPanel size
+            presetControls.RegionsPanel.Size = new Size(presetControls.RegionsPanel.Width, regionsPanelHeight);
+            
+            // Hotkey section starts at y=173 originally, so we need to move it down if regions panel grows
+            int hotkeySectionY = presetControls.RegionsPanel.Location.Y + regionsPanelHeight + 8; // 8px gap
+            
+            // Update positions of hotkey section controls
+            foreach (Control control in presetControls.GroupBox.Controls)
+            {
+                if (control == presetControls.HotkeyPicker || 
+                    control == presetControls.AltCheckBox || 
+                    control == presetControls.CtrlCheckBox || 
+                    control == presetControls.ShiftCheckBox)
+                {
+                    control.Location = new Point(control.Location.X, hotkeySectionY);
+                }
+                else if (control is Label && control.Text == "Hotkey:")
+                {
+                    control.Location = new Point(control.Location.X, hotkeySectionY + 2);
+                }
+            }
+            
+            // Update GroupBox height to accommodate all content
+            // Base height: hotkey section (y position) + hotkey section height (~30) + padding (~10)
+            int groupBoxHeight = hotkeySectionY + 40;
+            presetControls.GroupBox.Size = new Size(presetControls.GroupBox.Width, groupBoxHeight);
+            
+            // Update positions of subsequent presets
+            int currentY = presetControls.GroupBox.Location.Y + groupBoxHeight + 10;
+            int presetIndex = presetControls.PresetNumber - 1;
+            for (int i = presetIndex + 1; i < this.presetControls.Count; i++)
+            {
+                var nextPreset = this.presetControls[i];
+                if (nextPreset != null && nextPreset.GroupBox != null)
+                {
+                    nextPreset.GroupBox.Location = new Point(nextPreset.GroupBox.Location.X, currentY);
+                    currentY += nextPreset.GroupBox.Height + 10;
+                }
+            }
+            
+            // Update "Add Preset" button position
+            if (addPresetButton != null)
+            {
+                int maxY = 0;
+                foreach (var preset in this.presetControls)
+                {
+                    if (preset.GroupBox != null)
+                    {
+                        int bottom = preset.GroupBox.Location.Y + preset.GroupBox.Height;
+                        if (bottom > maxY) maxY = bottom;
+                    }
+                }
+                addPresetButton.Location = new Point(addPresetButton.Location.X, maxY + 10);
+            }
         }
 
         private void UpdateRegionButtons(LayoutPresetControls presetControls)

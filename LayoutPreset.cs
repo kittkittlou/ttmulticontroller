@@ -7,6 +7,15 @@ using System.Windows.Forms;
 namespace TTMulti
 {
     /// <summary>
+    /// Represents the mode for setting region bounds
+    /// </summary>
+    internal enum LayoutRegionMode
+    {
+        Manual = 0,
+        Display = 1
+    }
+
+    /// <summary>
     /// Represents a screen region for window placement
     /// </summary>
     internal class LayoutRegion
@@ -15,6 +24,8 @@ namespace TTMulti
         public int Y { get; set; }
         public int Width { get; set; }
         public int Height { get; set; }
+        public LayoutRegionMode Mode { get; set; }
+        public int DisplayIndex { get; set; }
 
         public LayoutRegion()
         {
@@ -22,6 +33,8 @@ namespace TTMulti
             Y = 0;
             Width = 1920;
             Height = 1080;
+            Mode = LayoutRegionMode.Manual;
+            DisplayIndex = -1;
         }
 
         public LayoutRegion(int x, int y, int width, int height)
@@ -30,6 +43,8 @@ namespace TTMulti
             Y = y;
             Width = width;
             Height = height;
+            Mode = LayoutRegionMode.Manual;
+            DisplayIndex = -1;
         }
 
         public override string ToString()
@@ -180,18 +195,24 @@ namespace TTMulti
         }
 
         /// <summary>
-        /// Serialize regions to a string format: "x,y,w,h;x,y,w,h;..."
+        /// Serialize regions to a string format: "x,y,w,h,mode,displayIndex;x,y,w,h,mode,displayIndex;..."
+        /// mode: 0 = Manual, 1 = Display
+        /// displayIndex: index of selected display (-1 if Manual)
         /// </summary>
         public static string SerializeRegions(List<LayoutRegion> regions)
         {
             if (regions == null || regions.Count == 0)
-                return "0,0,1920,1080"; // Default single region
+                return "0,0,1920,1080,0,-1"; // Default single region (Manual mode)
 
-            return string.Join(";", regions.Select(r => $"{r.X},{r.Y},{r.Width},{r.Height}"));
+            return string.Join(";", regions.Select(r => 
+            {
+                int mode = r.Mode == LayoutRegionMode.Display ? 1 : 0;
+                return $"{r.X},{r.Y},{r.Width},{r.Height},{mode},{r.DisplayIndex}";
+            }));
         }
 
         /// <summary>
-        /// Deserialize regions from string format: "x,y,w,h;x,y,w,h;..."
+        /// Deserialize regions from string format: "x,y,w,h;x,y,w,h;..." (old) or "x,y,w,h,mode,displayIndex;..." (new)
         /// </summary>
         public static List<LayoutRegion> DeserializeRegions(string regionsString)
         {
@@ -206,13 +227,25 @@ namespace TTMulti
                 foreach (var regionStr in regionStrings)
                 {
                     var parts = regionStr.Split(',');
-                    if (parts.Length == 4 &&
+                    if (parts.Length >= 4 &&
                         int.TryParse(parts[0], out int x) &&
                         int.TryParse(parts[1], out int y) &&
                         int.TryParse(parts[2], out int w) &&
                         int.TryParse(parts[3], out int h))
                     {
-                        regions.Add(new LayoutRegion(x, y, w, h));
+                        var region = new LayoutRegion(x, y, w, h);
+                        
+                        // Check if new format with mode and display index (6 parts)
+                        if (parts.Length >= 6 &&
+                            int.TryParse(parts[4], out int mode) &&
+                            int.TryParse(parts[5], out int displayIndex))
+                        {
+                            region.Mode = mode == 1 ? LayoutRegionMode.Display : LayoutRegionMode.Manual;
+                            region.DisplayIndex = displayIndex;
+                        }
+                        // Old format (4 parts) defaults to Manual mode
+                        
+                        regions.Add(region);
                     }
                 }
 
