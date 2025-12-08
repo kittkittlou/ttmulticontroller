@@ -13,5 +13,7 @@ namespace TTMulti
         public static readonly Color Focused = Color.DarkBlue;
         public static readonly Color SwitchingMode = Color.Red;
         public static readonly Color SwitchingSelected = Color.Yellow;
+        public static readonly Color SwitchingSwitched = Color.Orange;
+        public static readonly Color SwitchingMarkedForRemoval = Color.Black;
     }
 }
