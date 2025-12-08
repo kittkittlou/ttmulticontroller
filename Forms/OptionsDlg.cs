@@ -231,6 +231,14 @@ namespace TTMulti.Forms
         private CheckBox layoutPriorityShiftCheckBox;
         private Label layoutPriorityLabel;
 
+        // Switching Mode controls
+        private GroupBox switchingModeGroupBox;
+        private CheckBox switchingModeEnabledCheckBox;
+        private ComboBox switchingModeSwitchComboBox;
+        private KeyPicker switchingModeSwitchKeyPicker;
+        private KeyPicker switchingModeRemoveKeyPicker;
+        private Label switchingModeDescriptionLabel;
+
         private void OptionsDlg_Load(object sender, EventArgs e)
         {
             controlsPicker.KeyMappings = Properties.SerializedSettings.Default.Bindings;
@@ -246,6 +254,9 @@ namespace TTMulti.Forms
 
             CreateLayoutPriorityUI();
             LoadLayoutPrioritySettings();
+
+            CreateSwitchingModeTab();
+            LoadSwitchingModeSettings();
 
             loaded = true;
         }
@@ -516,6 +527,216 @@ namespace TTMulti.Forms
             Properties.Settings.Default.layoutPriorityToggleKeyModifiers = (int)modifiers;
         }
 
+        private void CreateSwitchingModeTab()
+        {
+            // Create a new tab page for Switching Mode
+            var switchingModeTab = new TabPage("Switching Mode");
+            switchingModeTab.AutoScroll = true;
+            switchingModeTab.Padding = new Padding(10);
+            
+            // Add the tab to the tab control
+            tabControl1.TabPages.Add(switchingModeTab);
+
+            // Create main group box
+            switchingModeGroupBox = new GroupBox
+            {
+                Text = "Switching Mode Configuration",
+                Location = new Point(10, 10),
+                Size = new Size(720, 280),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            };
+
+            // Enabled checkbox
+            switchingModeEnabledCheckBox = new CheckBox
+            {
+                Text = "Enable Switching Mode",
+                Location = new Point(10, 20),
+                Size = new Size(200, 20),
+                Checked = true
+            };
+            switchingModeGroupBox.Controls.Add(switchingModeEnabledCheckBox);
+
+            // Description label
+            switchingModeDescriptionLabel = new Label
+            {
+                Text = "Switching Mode allows you to reorganize windows by swapping their controller assignments.\n\n" +
+                       "• Hold Alt to enter Switching Mode (all windows show red borders with numbers)\n" +
+                       "• Use the keybinds below to select/switch windows or mark them for removal\n" +
+                       "• Release Alt to exit Switching Mode and apply changes",
+                Location = new Point(10, 45),
+                Size = new Size(700, 80),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            };
+            switchingModeGroupBox.Controls.Add(switchingModeDescriptionLabel);
+
+            // Switch keybind section
+            var switchLabel = new Label
+            {
+                Text = "Switch/Select Keybind:",
+                Location = new Point(10, 135),
+                Size = new Size(200, 20),
+                Font = new Font(switchingModeGroupBox.Font, FontStyle.Bold)
+            };
+            switchingModeGroupBox.Controls.Add(switchLabel);
+
+            var switchDescLabel = new Label
+            {
+                Text = "Press this key (or click) on a window to select it. Press again on another window to swap them.",
+                Location = new Point(10, 155),
+                Size = new Size(700, 20)
+            };
+            switchingModeGroupBox.Controls.Add(switchDescLabel);
+
+            var switchKeyLabel = new Label
+            {
+                Text = "Key:",
+                Location = new Point(10, 180),
+                Size = new Size(60, 20)
+            };
+            switchingModeGroupBox.Controls.Add(switchKeyLabel);
+
+            // ComboBox for selecting mouse button or keyboard key
+            switchingModeSwitchComboBox = new ComboBox
+            {
+                Location = new Point(80, 178),
+                Size = new Size(150, 23),
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            switchingModeSwitchComboBox.Items.AddRange(new object[] {
+                "Left Mouse Button",
+                "Right Mouse Button",
+                "Middle Mouse Button",
+                "Keyboard Key..."
+            });
+            switchingModeSwitchComboBox.SelectedIndexChanged += SwitchingModeSwitchComboBox_SelectedIndexChanged;
+            switchingModeGroupBox.Controls.Add(switchingModeSwitchComboBox);
+
+            // KeyPicker for keyboard key selection (initially hidden)
+            switchingModeSwitchKeyPicker = new KeyPicker
+            {
+                Location = new Point(240, 178),
+                Size = new Size(120, 23),
+                Visible = false
+            };
+            switchingModeGroupBox.Controls.Add(switchingModeSwitchKeyPicker);
+
+            // Remove keybind section
+            var removeLabel = new Label
+            {
+                Text = "Remove Keybind:",
+                Location = new Point(10, 210),
+                Size = new Size(200, 20),
+                Font = new Font(switchingModeGroupBox.Font, FontStyle.Bold)
+            };
+            switchingModeGroupBox.Controls.Add(removeLabel);
+
+            var removeDescLabel = new Label
+            {
+                Text = "Press this key on a window to mark it for removal (black highlight). Release Alt to remove all marked windows.",
+                Location = new Point(10, 230),
+                Size = new Size(700, 20)
+            };
+            switchingModeGroupBox.Controls.Add(removeDescLabel);
+
+            var removeKeyLabel = new Label
+            {
+                Text = "Key:",
+                Location = new Point(10, 255),
+                Size = new Size(60, 20)
+            };
+            switchingModeGroupBox.Controls.Add(removeKeyLabel);
+
+            switchingModeRemoveKeyPicker = new KeyPicker
+            {
+                Location = new Point(80, 253),
+                Size = new Size(120, 23)
+            };
+            switchingModeGroupBox.Controls.Add(switchingModeRemoveKeyPicker);
+
+            // Add group box to tab
+            switchingModeTab.Controls.Add(switchingModeGroupBox);
+        }
+
+        private void SwitchingModeSwitchComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (switchingModeSwitchComboBox == null)
+                return;
+
+            // Show/hide KeyPicker based on selection
+            // Index 0-2: Mouse buttons, Index 3: Keyboard Key
+            switchingModeSwitchKeyPicker.Visible = switchingModeSwitchComboBox.SelectedIndex == 3;
+        }
+
+        private void LoadSwitchingModeSettings()
+        {
+            if (switchingModeSwitchComboBox == null)
+                return;
+
+            // Load enabled checkbox
+            switchingModeEnabledCheckBox.Checked = Properties.Settings.Default.switchingModeEnabled;
+
+            int switchKeyCode = Properties.Settings.Default.switchingModeSwitchKeyCode;
+            
+            // Map key codes to ComboBox indices:
+            // 1 = Left Mouse Button (LButton)
+            // 2 = Right Mouse Button (RButton)
+            // 4 = Middle Mouse Button (MButton)
+            // Other = Keyboard Key
+            
+            if (switchKeyCode == 1)
+            {
+                switchingModeSwitchComboBox.SelectedIndex = 0; // Left Mouse Button
+            }
+            else if (switchKeyCode == 2)
+            {
+                switchingModeSwitchComboBox.SelectedIndex = 1; // Right Mouse Button
+            }
+            else if (switchKeyCode == 4)
+            {
+                switchingModeSwitchComboBox.SelectedIndex = 2; // Middle Mouse Button
+            }
+            else
+            {
+                switchingModeSwitchComboBox.SelectedIndex = 3; // Keyboard Key
+                switchingModeSwitchKeyPicker.ChosenKey = (Keys)switchKeyCode;
+                switchingModeSwitchKeyPicker.Visible = true;
+            }
+            
+            // Load remove keybind (default: X key = 88)
+            switchingModeRemoveKeyPicker.ChosenKey = (Keys)Properties.Settings.Default.switchingModeRemoveKeyCode;
+        }
+
+        private void SaveSwitchingModeSettings()
+        {
+            if (switchingModeSwitchComboBox == null)
+                return;
+
+            // Save enabled checkbox
+            Properties.Settings.Default.switchingModeEnabled = switchingModeEnabledCheckBox.Checked;
+
+            // Map ComboBox selection to key code
+            int switchKeyCode;
+            switch (switchingModeSwitchComboBox.SelectedIndex)
+            {
+                case 0: // Left Mouse Button
+                    switchKeyCode = 1;
+                    break;
+                case 1: // Right Mouse Button
+                    switchKeyCode = 2;
+                    break;
+                case 2: // Middle Mouse Button
+                    switchKeyCode = 4;
+                    break;
+                case 3: // Keyboard Key
+                default:
+                    switchKeyCode = (int)switchingModeSwitchKeyPicker.ChosenKey;
+                    break;
+            }
+
+            Properties.Settings.Default.switchingModeSwitchKeyCode = switchKeyCode;
+            Properties.Settings.Default.switchingModeRemoveKeyCode = (int)switchingModeRemoveKeyPicker.ChosenKey;
+        }
+
         private void LoadAutoFindSettings()
         {
             if (autoFindExecutablesTextBox == null)
@@ -612,6 +833,9 @@ namespace TTMulti.Forms
 
             // Save layout priority settings
             SaveLayoutPrioritySettings();
+            
+            // Save switching mode settings
+            SaveSwitchingModeSettings();
             
             Properties.Settings.Default.Save();
             DialogResult = DialogResult.OK;

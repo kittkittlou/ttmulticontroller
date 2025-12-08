@@ -943,5 +943,41 @@ namespace TTMulti.Properties {
                 this["layoutPreset4HotkeyModifiers"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public int switchingModeSwitchKeyCode {
+            get {
+                return ((int)(this["switchingModeSwitchKeyCode"]));
+            }
+            set {
+                this["switchingModeSwitchKeyCode"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("88")]
+        public int switchingModeRemoveKeyCode {
+            get {
+                return ((int)(this["switchingModeRemoveKeyCode"]));
+            }
+            set {
+                this["switchingModeRemoveKeyCode"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool switchingModeEnabled {
+            get {
+                return ((bool)(this["switchingModeEnabled"]));
+            }
+            set {
+                this["switchingModeEnabled"] = value;
+            }
+        }
     }
 }

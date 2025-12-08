@@ -942,7 +942,12 @@ namespace TTMulti
             }
             else if (keysPressed == Keys.Menu) // Alt key
             {
-                // Handle Alt key for switching mode
+                // Handle Alt key for switching mode (only if enabled)
+                if (!Properties.Settings.Default.switchingModeEnabled)
+                {
+                    return false; // Don't handle Alt if switching mode is disabled
+                }
+                
                 if (msg == Win32.WM.SYSKEYDOWN || msg == Win32.WM.KEYDOWN)
                 {
                     if (!_switchingMode)
@@ -979,9 +984,9 @@ namespace TTMulti
                     }
                 }
             }
-            else if (_switchingMode && keysPressed == Keys.X)
+            else if (_switchingMode && keysPressed == (Keys)Properties.Settings.Default.switchingModeRemoveKeyCode)
             {
-                // Handle X key in switching mode - toggle removal mark on the controller under cursor
+                // Handle remove key in switching mode - toggle removal mark on the controller under cursor
                 if (msg == Win32.WM.KEYDOWN || msg == Win32.WM.SYSKEYDOWN)
                 {
                     var controllerUnderCursor = GetControllerUnderCursor();
@@ -1010,6 +1015,52 @@ namespace TTMulti
                         }
                         
                         UpdateSwitchingModeDisplay();
+                    }
+                    return true;
+                }
+            }
+            else if (_switchingMode && keysPressed == (Keys)Properties.Settings.Default.switchingModeSwitchKeyCode)
+            {
+                // Handle switch/select key in switching mode
+                if (msg == Win32.WM.KEYDOWN || msg == Win32.WM.SYSKEYDOWN)
+                {
+                    var controllerUnderCursor = GetControllerUnderCursor();
+                    if (controllerUnderCursor != null && controllerUnderCursor.HasWindow)
+                    {
+                        // If clicking on a window marked for removal, unmark it first
+                        if (_markedForRemoval.Contains(controllerUnderCursor))
+                        {
+                            _markedForRemoval.Remove(controllerUnderCursor);
+                        }
+                        
+                        if (_firstSelectedController == null)
+                        {
+                            // Select first window
+                            _firstSelectedController = controllerUnderCursor;
+                            UpdateSwitchingModeDisplay();
+                        }
+                        else if (_secondSelectedController == null && controllerUnderCursor != _firstSelectedController)
+                        {
+                            // Select second window and switch
+                            _secondSelectedController = controllerUnderCursor;
+                            SwitchWindows(_firstSelectedController, _secondSelectedController);
+                            
+                            // Reset selection state but keep switching mode active (Alt is still held)
+                            _firstSelectedController = null;
+                            _secondSelectedController = null;
+                            UpdateSwitchingModeDisplay();
+                        }
+                        else if (controllerUnderCursor == _firstSelectedController)
+                        {
+                            // Pressing the same window again deselects it
+                            _firstSelectedController = null;
+                            UpdateSwitchingModeDisplay();
+                        }
+                        else
+                        {
+                            // Just update display if we unmarked a removal
+                            UpdateSwitchingModeDisplay();
+                        }
                     }
                     return true;
                 }
@@ -1224,7 +1275,14 @@ namespace TTMulti
         private bool ProcessMouseInput(Win32.WM msg, IntPtr wParam, IntPtr lParam, ToontownController sourceController)
         {
             // Handle mouse clicks in switching mode for window selection/switching
-            if (_switchingMode && msg == Win32.WM.LBUTTONDOWN)
+            // Only handle mouse clicks if the switch key is set to a mouse button
+            int switchKeyCode = Properties.Settings.Default.switchingModeSwitchKeyCode;
+            bool isMouseButtonSwitch = switchKeyCode == 1 || switchKeyCode == 2 || switchKeyCode == 4;
+            bool isMatchingMouseButton = (msg == Win32.WM.LBUTTONDOWN && switchKeyCode == 1) ||
+                                        (msg == Win32.WM.RBUTTONDOWN && switchKeyCode == 2) ||
+                                        (msg == Win32.WM.MBUTTONDOWN && switchKeyCode == 4);
+            
+            if (_switchingMode && isMatchingMouseButton)
             {
                 var controllerUnderCursor = GetControllerUnderCursor();
                 if (controllerUnderCursor != null)
@@ -1684,12 +1742,17 @@ namespace TTMulti
                 int msg = wParam.ToInt32();
                 
                 // Block mouse clicks (left, right, middle button down)
+                int switchKeyCode = Properties.Settings.Default.switchingModeSwitchKeyCode;
+                bool isMatchingMouseButton = (msg == (int)Win32.WM.LBUTTONDOWN && switchKeyCode == 1) ||
+                                            (msg == (int)Win32.WM.RBUTTONDOWN && switchKeyCode == 2) ||
+                                            (msg == (int)Win32.WM.MBUTTONDOWN && switchKeyCode == 4);
+                
                 if (msg == (int)Win32.WM.LBUTTONDOWN || 
                     msg == (int)Win32.WM.RBUTTONDOWN || 
                     msg == (int)Win32.WM.MBUTTONDOWN)
                 {
-                    // Process left clicks for selection/switching
-                    if (msg == (int)Win32.WM.LBUTTONDOWN)
+                    // Process matching mouse button clicks for selection/switching
+                    if (isMatchingMouseButton)
                     {
                         // Get mouse position from hook structure
                         Win32.MSLLHOOKSTRUCT hookStruct = (Win32.MSLLHOOKSTRUCT)System.Runtime.InteropServices.Marshal.PtrToStructure(
