@@ -514,7 +514,7 @@ namespace TTMulti
         }
         
 
-        internal void ExitSwitchingMode()
+        private void ExitSwitchingMode()
         {
             _switchingMode = false;
             _switchingModeTimer.Stop();
@@ -866,14 +866,6 @@ namespace TTMulti
             else if (keysPressed == (Keys)Properties.Settings.Default.replicateMouseKeyCode
                 && Properties.Settings.Default.replicateMouseKeyCode != 0)
             {
-                // If any modifiers are down, treat this as a normal key so combinations like Shift+F6 pass through
-                Keys currentModifiers = System.Windows.Forms.Control.ModifierKeys;
-                bool hasModifiers = (currentModifiers & (Keys.Shift | Keys.Control | Keys.Alt)) != Keys.None;
-                if (hasModifiers)
-                {
-                    return false;
-                }
-
                 // Instant Multi-Click: Send a click to all windows at current cursor position
                 if (msg == Win32.WM.KEYDOWN || msg == Win32.WM.HOTKEY)
                 {
@@ -969,20 +961,11 @@ namespace TTMulti
                     return false; // Don't handle Alt if switching mode is disabled
                 }
                 
-                // Only handle Alt key if multicontroller is active or at least one Toontown window is active
-                // This allows Alt+Tab to work normally when multicontroller is inactive
-                bool shouldHandleAlt = IsActive || AllControllersWithWindows.Any(c => c.IsWindowActive);
-                
-                if (!shouldHandleAlt)
-                {
-                    return false; // Let Alt+Tab work normally when multicontroller is inactive
-                }
-                
                 if (msg == Win32.WM.SYSKEYDOWN || msg == Win32.WM.KEYDOWN)
                 {
                     if (!_switchingMode)
                     {
-                        // Enter switching mode
+                        // Enter switching mode (allow even when not active or no windows are connected)
                         // Activate multicontroller if not already active
                         if (!IsActive)
                         {
@@ -1211,14 +1194,6 @@ namespace TTMulti
             else if (keysPressed == (Keys)Properties.Settings.Default.zeroPowerThrowKeyCode 
                 && Properties.Settings.Default.zeroPowerThrowKeyCode != 0)
             {
-                // If any modifiers are down, treat this as a normal key so combinations pass through
-                Keys currentModifiers = System.Windows.Forms.Control.ModifierKeys;
-                bool hasModifiers = (currentModifiers & (Keys.Shift | Keys.Control | Keys.Alt)) != Keys.None;
-                if (hasModifiers)
-                {
-                    return false;
-                }
-
                 // Handle Zero Power Throw Hotkey
                 if (msg == Win32.WM.KEYDOWN || msg == Win32.WM.HOTKEY)
                 {

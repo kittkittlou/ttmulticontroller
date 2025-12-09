@@ -264,46 +264,6 @@ namespace TTMulti.Forms
                         controller.ProcessInput(m.Msg, m.WParam, m.LParam);
                     }
                 }
-                else if (hotkeyId == 1)
-                {
-                    // Instant Multi-Click hotkey (ID 1)
-                    // Check if any modifiers are currently pressed - if so, don't execute multi-click, let it pass through to games
-                    Keys currentModifiers = Control.ModifierKeys;
-                    bool hasModifiers = (currentModifiers & (Keys.Shift | Keys.Control | Keys.Alt)) != Keys.None;
-                    
-                    if (hasModifiers)
-                    {
-                        // Modifiers are pressed - don't execute multi-click, let the key pass through to games
-                        // Convert HOTKEY message to KEYDOWN so it gets processed normally
-                        Keys keyCode = (Keys)Properties.Settings.Default.replicateMouseKeyCode;
-                        controller.ProcessInput((int)Win32.WM.KEYDOWN, (IntPtr)keyCode, IntPtr.Zero);
-                    }
-                    else
-                    {
-                        // No modifiers - handle as multi-click
-                        controller.ProcessInput(m.Msg, m.WParam, m.LParam);
-                    }
-                }
-                else if (hotkeyId == 2)
-                {
-                    // Zero Power Throw hotkey (ID 2)
-                    // Check if any modifiers are currently pressed - if so, don't execute zero power throw, let it pass through to games
-                    Keys currentModifiers = Control.ModifierKeys;
-                    bool hasModifiers = (currentModifiers & (Keys.Shift | Keys.Control | Keys.Alt)) != Keys.None;
-                    
-                    if (hasModifiers)
-                    {
-                        // Modifiers are pressed - don't execute zero power throw, let the key pass through to games
-                        // Convert HOTKEY message to KEYDOWN so it gets processed normally
-                        Keys keyCode = (Keys)Properties.Settings.Default.zeroPowerThrowKeyCode;
-                        controller.ProcessInput((int)Win32.WM.KEYDOWN, (IntPtr)keyCode, IntPtr.Zero);
-                    }
-                    else
-                    {
-                        // No modifiers - handle as zero power throw
-                        controller.ProcessInput(m.Msg, m.WParam, m.LParam);
-                    }
-                }
                 else
                 {
                     controller.ProcessInput(m.Msg, m.WParam, m.LParam);
@@ -603,12 +563,6 @@ namespace TTMulti.Forms
 
         private void Controller_AllWindowsInactive(object sender, EventArgs e)
         {
-            // Exit switching mode if active (prevents getting stuck when all windows become inactive)
-            if (controller.IsSwitchingMode)
-            {
-                controller.ExitSwitchingMode();
-            }
-            
             // Unregister all hotkeys first
             UnregisterHotkey();
             UnregisterLayoutHotkeys();
@@ -871,12 +825,6 @@ namespace TTMulti.Forms
 
         private void MulticontrollerWnd_Deactivate(object sender, EventArgs e)
         {
-            // Exit switching mode if active (prevents getting stuck when Alt+Tabbing away)
-            if (controller.IsSwitchingMode)
-            {
-                controller.ExitSwitchingMode();
-            }
-            
             controller.IsActive = false;
             
             // Unregister all hotkeys first
